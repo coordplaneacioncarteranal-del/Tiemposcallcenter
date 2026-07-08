@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Outbound – Dyalogo Analytics</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- PapaParse -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
+  <style>
+    :root {
+      --sidebar-w: 270px;
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card2: #162032;
+      --border: #334155;
+      --accent-blue: #3b82f6;
+      --accent-green: #22c55e;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [data-theme="light"] {
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card2: #f8fafc;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+    }
+    [data-theme="light"] #sidebar,
+    [data-theme="light"] #topbar { background: #ffffff; }
+    [data-theme="light"] .filter-select option { background: #ffffff; }
+    [data-theme="light"] .btn-reset { background: #e2e8f0; color: #0f172a; }
+    [data-theme="light"] .btn-reset:hover { background: #cbd5e1; }
+    [data-theme="light"] tbody tr { border-bottom-color: rgba(203,213,225,.7); }
+    [data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+    [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    [data-theme="light"] .pag-btn { background: #f1f5f9; }
+    [data-theme="light"] .kpi-card:hover { box-shadow: 0 8px 25px rgba(15,23,42,.08); }
+    #theme-toggle {
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-main); font-size: .95rem; cursor: pointer;
+      padding: .35rem .55rem; border-radius: 8px; transition: background .2s;
+    }
+    #theme-toggle:hover { background: var(--border); }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: #111827;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 50;
+      overflow-y: auto;
+      transition: transform .3s ease;
+    }
+    #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
+    .sidebar-logo {
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .sidebar-logo span { font-size: .85rem; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+    .sidebar-logo small { font-size: .68rem; color: var(--text-muted); }
+    .filter-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .filter-section h3 {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-muted); margin-bottom: .75rem;
+    }
+    .filter-label { font-size: .78rem; color: var(--text-muted); margin-bottom: .3rem; display: block; }
+    select.filter-select, .filter-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: .45rem .7rem;
+      font-size: .8rem;
+      margin-bottom: .75rem;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    select.filter-select:focus, .filter-input:focus { border-color: var(--accent-blue); }
+    .filter-select option { background: #1e293b; }
+    .btn-reset {
+      width: 100%; padding: .5rem;
+      background: #334155; border: none; border-radius: 6px;
+      color: var(--text-main); font-size: .78rem; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    .btn-reset:hover { background: #475569; }
+    /* ── MAIN CONTENT ── */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: margin-left .3s ease;
+    }
+    #main.expanded { margin-left: 0; }
+    /* ── TOP BAR ── */
+    #topbar {
+      height: 60px;
+      background: #111827;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 1.5rem;
+      gap: 1rem;
+      position: sticky; top: 0; z-index: 40;
+    }
+    #toggle-sidebar {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 1.3rem; cursor: pointer; padding: .25rem;
+      border-radius: 4px; transition: color .2s;
+    }
+    #toggle-sidebar:hover { color: var(--text-main); }
+    #topbar h1 { font-size: 1rem; font-weight: 700; color: var(--text-main); flex: 1; }
+    #topbar .badge {
+      font-size: .7rem; padding: .2rem .65rem; border-radius: 999px;
+      background: rgba(59,130,246,.15); color: var(--accent-blue);
+      border: 1px solid rgba(59,130,246,.3); font-weight: 600;
+    }
+    #last-update { font-size: .72rem; color: var(--text-muted); }
+    /* ── LOADING OVERLAY ── */
+    #loading-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(15,23,42,.95);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1.5rem;
+    }
+    .loader-ring {
+      width: 60px; height: 60px; border-radius: 50%;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent-blue);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-size: .9rem; color: var(--text-muted); text-align: center; }
+    .loader-sources { display: flex; flex-direction: column; gap: .4rem; margin-top: .5rem; }
+    .loader-src {
+      font-size: .75rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .loader-src .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+    }
+    .loader-src.ok .dot { background: var(--accent-green); }
+    .loader-src.err .dot { background: var(--accent-red); }
+    /* ── ERROR BANNER ── */
+    #error-banner {
+      display: none;
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+      border-radius: 8px; padding: .75rem 1rem;
+      font-size: .8rem; color: #fca5a5; margin: 1rem 1.5rem 0;
+    }
+    /* ── CONTENT AREA ── */
+    #content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    /* ── KPI CARDS ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      position: relative; overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,.3); }
+    .kpi-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 12px 12px 0 0;
+    }
+    .kpi-card.blue::before { background: var(--accent-blue); }
+    .kpi-card.green::before { background: var(--accent-green); }
+    .kpi-card.amber::before { background: var(--accent-amber); }
+    .kpi-card.red::before { background: var(--accent-red); }
+    .kpi-card.purple::before { background: #a855f7; }
+    .kpi-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: .5rem; }
+    .kpi-value { font-size: 1.8rem; font-weight: 800; line-height: 1; color: var(--text-main); }
+    .kpi-value.alert { color: var(--accent-red); }
+    .kpi-value.warn { color: var(--accent-amber); }
+    .kpi-sub { font-size: .72rem; color: var(--text-muted); margin-top: .4rem; }
+    .kpi-icon {
+      position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+      font-size: 2rem; opacity: .08;
+    }
+    /* ── CHART CARDS ── */
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+    }
+    .chart-title {
+      font-size: .85rem; font-weight: 700; color: var(--text-main);
+      margin-bottom: .25rem;
+    }
+    .chart-subtitle { font-size: .73rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    /* ── AGENT TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead tr { border-bottom: 2px solid var(--border); }
+    th {
+      padding: .75rem 1rem; text-align: left;
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text-muted);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    th:hover { color: var(--text-main); }
+    th .sort-icon { margin-left: .25rem; opacity: .5; }
+    tbody tr {
+      border-bottom: 1px solid rgba(51,65,85,.5);
+      transition: background .15s;
+    }
+    tbody tr:hover { background: rgba(59,130,246,.05); }
+    td { padding: .65rem 1rem; color: var(--text-main); white-space: nowrap; }
+    td.muted { color: var(--text-muted); }
+    .badge-result {
+      display: inline-block; padding: .2rem .5rem;
+      border-radius: 4px; font-size: .68rem; font-weight: 700;
+    }
+    .badge-green { background: rgba(34,197,94,.15); color: #4ade80; }
+    .badge-red { background: rgba(239,68,68,.15); color: #f87171; }
+    .badge-amber { background: rgba(245,158,11,.15); color: #fbbf24; }
+    .badge-blue { background: rgba(59,130,246,.15); color: #93c5fd; }
+    .progress-bar {
+      height: 5px; border-radius: 999px;
+      background: var(--border); overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: var(--accent-blue); transition: width .5s ease;
+    }
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 0 0; font-size: .78rem; color: var(--text-muted);
+    }
+    .pag-btns { display: flex; gap: .4rem; }
+    .pag-btn {
+      padding: .3rem .65rem; border-radius: 6px;
+      background: var(--bg-card2); border: 1px solid var(--border);
+      color: var(--text-main); font-size: .75rem; cursor: pointer;
+      transition: background .15s;
+    }
+    .pag-btn:hover { background: #334155; }
+    .pag-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+    .pag-btn:disabled { opacity: .4; cursor: not-allowed; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    /* No data */
+    .no-data {
+      text-align: center; padding: 3rem 1rem;
+      color: var(--text-muted); font-size: .85rem;
+    }
+    /* Range labels */
+    .range-row { display: flex; gap: .5rem; }
+    .range-row input {
+      width: 50%; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-main); padding: .4rem .55rem;
+      font-size: .78rem; outline: none;
+    }
+    .range-row input:focus { border-color: var(--accent-blue); }
+    /* Responsive */
+    @media (max-width: 900px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      #sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+      #sidebar.mobile-open { transform: translateX(0); }
+      #main { margin-left: 0 !important; }
+    }
+    /* Heatmap custom */
+    #heatmap-container { width: 100%; overflow-x: auto; }
+  </style>
+</head>
+<body>
+<!-- ═══════════════════════════════════════════
+     LOADING OVERLAY
+═══════════════════════════════════════════ -->
+<div id="loading-overlay">
+  <div class="loader-ring"></div>
+  <div>
+    <div class="loader-text" style="font-weight:700; font-size:1rem; color:#e2e8f0;">Cargando datos de Dyalogo</div>
+    <div class="loader-text" id="loader-progress">Consolidando 4 fuentes de datos...</div>
+    <div class="loader-sources" id="loader-sources">
+      <div class="loader-src" id="src-0"><div class="dot"></div> Bimestre 1</div>
+      <div class="loader-src" id="src-1"><div class="dot"></div> Bimestre 2</div>
+      <div class="loader-src" id="src-2"><div class="dot"></div> Mayo</div>
+      <div class="loader-src" id="src-3"><div class="dot"></div> Junio</div>
+    </div>
+  </div>
+</div>
+<!-- ═══════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">📞</div>
+    <div>
+      <span>Dyalogo Analytics<br><small>Outbound Dashboard</small></span>
+    </div>
+  </div>
+  <!-- Filtros -->
+  <div class="filter-section">
+    <h3>⚡ Filtros Activos</h3>
+    <label class="filter-label">📅 Mes de Gestión</label>
+    <select class="filter-select" id="f-mes" size="1">
+      <option value="">— Todos los meses —</option>
+    </select>
+    <label class="filter-label">🗓️ Rango de Fechas</label>
+    <div class="range-row" style="margin-bottom:.75rem">
+      <input type="date" id="f-fecha-min" class="filter-input" style="margin:0" />
+      <input type="date" id="f-fecha-max" class="filter-input" style="margin:0" />
+    </div>
+    <label class="filter-label">🎯 Campaña</label>
+    <select class="filter-select" id="f-campana">
+      <option value="">— Todas las campañas —</option>
+    </select>
+    <label class="filter-label">🧑‍💼 Agente</label>
+    <select class="filter-select" id="f-agente">
+      <option value="">— Todos los agentes —</option>
+    </select>
+    <label class="filter-label">🕐 Hora Inicio</label>
+    <div class="range-row" style="margin-bottom:.75rem">
+      <input type="number" id="f-hora-min" class="filter-input" min="0" max="23" placeholder="0" style="margin:0" />
+      <input type="number" id="f-hora-max" class="filter-input" min="0" max="23" placeholder="23" style="margin:0" />
+    </div>
+    <label class="filter-label">📊 Resultado</label>
+    <select class="filter-select" id="f-resultado">
+      <option value="">— Todos los resultados —</option>
+    </select>
+    <button class="btn-reset" onclick="resetFilters()">↺ Limpiar Filtros</button>
+  </div>
+  <div class="filter-section" style="flex:1">
+    <h3>ℹ️ Info del Dataset</h3>
+    <div style="font-size:.75rem; color:var(--text-muted); line-height:1.8">
+      Total registros: <span id="info-total" style="color:var(--text-main); font-weight:600">—</span><br>
+      Filtrados: <span id="info-filtered" style="color:var(--text-main); font-weight:600">—</span><br>
+      Campañas: <span id="info-camps" style="color:var(--text-main); font-weight:600">—</span><br>
+      Agentes: <span id="info-agents" style="color:var(--text-main); font-weight:600">—</span><br>
+      Rango fechas: <span id="info-dates" style="color:var(--text-main); font-weight:600">—</span>
+    </div>
+  </div>
+</aside>
+<!-- ═══════════════════════════════════════════
+     MAIN
+═══════════════════════════════════════════ -->
+<div id="main">
+  <!-- Top Bar -->
+  <div id="topbar">
+    <button id="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    <h1>📊 Dashboard Outbound — Dyalogo</h1>
+    <span class="badge">LIVE DATA</span>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+    <span id="last-update" style="margin-left:auto">—</span>
+  </div>
+  <!-- Error Banner -->
+  <div id="error-banner"></div>
+  <!-- Content -->
+  <div id="content">
+    <!-- KPI ROW -->
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">📞 Llamadas Totales</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub" id="kpi-total-sub">registros consolidados</div>
+        <div class="kpi-icon">📞</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">⏱ Tiempo Hablado Total</div>
+        <div class="kpi-value" id="kpi-tiempo">—</div>
+        <div class="kpi-sub" id="kpi-tiempo-sub">horas de conversación</div>
+        <div class="kpi-icon">⏱</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">📝 Tiempo Tipificación (OB=APLICA)</div>
+        <div class="kpi-value" id="kpi-tipif">—</div>
+        <div class="kpi-sub" id="kpi-tipif-sub">solo registros OB=APLICA</div>
+        <div class="kpi-icon">📝</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">✅ Contactabilidad</div>
+        <div class="kpi-value" id="kpi-contact">—</div>
+        <div class="kpi-sub" id="kpi-contact-sub">llamadas contestadas</div>
+        <div class="kpi-icon">✅</div>
+      </div>
+      <div class="kpi-card amber" id="kpi-buzon-card">
+        <div class="kpi-label">⚠️ Alerta Buzón (&lt;1 min)</div>
+        <div class="kpi-value" id="kpi-buzon">—</div>
+        <div class="kpi-sub" id="kpi-buzon-sub">de contestadas son buzón</div>
+        <div class="kpi-icon">⚠️</div>
+      </div>
+    </div>
+    <!-- CHARTS ROW 1 -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">🍩 Distribución por Resultado</div>
+        <div class="chart-subtitle">Desglose porcentual de estados de llamada</div>
+        <div id="chart-donut"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📊 Volumen por Resultado</div>
+        <div class="chart-subtitle">Cantidad absoluta de llamadas por estado</div>
+        <div id="chart-bars"></div>
+      </div>
+    </div>
+    <!-- HEATMAP -->
+    <div class="chart-card">
+      <div class="chart-title">🌡️ Mapa de Calor — Hora vs. Día de la Semana</div>
+      <div class="chart-subtitle">Intensidad de llamadas y contactabilidad por franja horaria y día. Cada celda = total de llamadas.</div>
+      <div id="heatmap-container">
+        <div id="chart-heatmap"></div>
+      </div>
+    </div>
+    <!-- BARRAS POR HORA -->
+    <div class="chart-card">
+      <div class="chart-title">📈 Contactabilidad por Franja Horaria</div>
+      <div class="chart-subtitle">% de llamadas contestadas vs. no contestadas según la hora del día</div>
+      <div id="chart-hora"></div>
+    </div>
+    <!-- TIEMPOS DE TIPIFICACIÓN -->
+   <div class="chart-card">
+      <div class="chart-title">⏱️ Análisis de Tiempo de Tipificación</div>
+      <div class="chart-subtitle">Promedio de tiempo de gestión (ACW) por Resultado, Campaña y Asesor (Top 10)</div>
+      <div class="charts-row" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 1rem;">
+        <div id="chart-tipif-res"></div>
+        <div id="chart-tipif-camp"></div>
+        <div id="chart-tipif-agent"></div>
+      </div>
+    </div>
+    <!-- AGENT TABLE -->
+    <div class="chart-card">
+      <div class="chart-title">🧑‍💼 Rendimiento por Agente</div>
+      <div class="chart-subtitle">Tabla paginada y ordenable — haz clic en los encabezados para ordenar</div>
+      <div class="table-wrap">
+        <table id="agent-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable('agente')">Agente <span class="sort-icon" id="sort-agente">↕</span></th>
+              <th onclick="sortTable('total')">Total Llamadas <span class="sort-icon" id="sort-total">↕</span></th>
+              <th onclick="sortTable('contestadas')">Contestadas <span class="sort-icon" id="sort-contestadas">↕</span></th>
+              <th onclick="sortTable('contactabilidad')">% Contactabilidad <span class="sort-icon" id="sort-contactabilidad">↕</span></th>
+              <th onclick="sortTable('tiempoPromedio')">TIEMPO HABLADO <span class="sort-icon" id="sort-tiempoPromedio">↕</span></th>
+              <th onclick="sortTable('pctBuzon')">% Buzón &lt;1min <span class="sort-icon" id="sort-pctBuzon">↕</span></th>
+              <th onclick="sortTable('tTipifTotal')">Tiempo Tipif. <span class="sort-icon" id="sort-tTipifTotal">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="agent-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pag-info">—</span>
+        <div class="pag-btns" id="pag-btns"></div>
+      </div>
+    </div>
+    <!-- MES TABLE -->
+    <div class="chart-card">
+      <div class="chart-title">📅 Rendimiento por Mes</div>
+      <div class="chart-subtitle">Tabla paginada y ordenable — haz clic en los encabezados para ordenar</div>
+      <div class="table-wrap">
+        <table id="mes-table">
+          <thead>
+            <tr>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','label','mes')">Mes <span class="sort-icon-mes" id="sort-mes-label">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','total','mes')">Total Llamadas <span class="sort-icon-mes" id="sort-mes-total">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','contestadas','mes')">Contestadas <span class="sort-icon-mes" id="sort-mes-contestadas">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','contactabilidad','mes')">% Contactabilidad <span class="sort-icon-mes" id="sort-mes-contactabilidad">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','tmo','mes')">TIEMPO HABLADO <span class="sort-icon-mes" id="sort-mes-tmo">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','pctBuzon','mes')">% Buzón &lt;1min <span class="sort-icon-mes" id="sort-mes-pctBuzon">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','promTipif','mes')">Tiempo Tipif. <span class="sort-icon-mes" id="sort-mes-promTipif">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="mes-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="mes-pag-info">—</span>
+        <div class="pag-btns" id="mes-pag-btns"></div>
+      </div>
+    </div>
+    <!-- CAMPAÑA TABLE -->
+    <div class="chart-card">
+      <div class="chart-title">🎯 Rendimiento por Campaña</div>
+      <div class="chart-subtitle">Tabla paginada y ordenable — haz clic en los encabezados para ordenar</div>
+      <div class="table-wrap">
+        <table id="campana-table">
+          <thead>
+            <tr>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','label','campana')">Campaña <span class="sort-icon-campana" id="sort-campana-label">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','total','campana')">Total Llamadas <span class="sort-icon-campana" id="sort-campana-total">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','contestadas','campana')">Contestadas <span class="sort-icon-campana" id="sort-campana-contestadas">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','contactabilidad','campana')">% Contactabilidad <span class="sort-icon-campana" id="sort-campana-contactabilidad">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','tmo','campana')">TIEMPO HABLADO <span class="sort-icon-campana" id="sort-campana-tmo">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','pctBuzon','campana')">% Buzón &lt;1min <span class="sort-icon-campana" id="sort-campana-pctBuzon">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','promTipif','campana')">Tiempo Tipif. <span class="sort-icon-campana" id="sort-campana-promTipif">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="campana-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="campana-pag-info">—</span>
+        <div class="pag-btns" id="campana-pag-btns"></div>
+      </div>
+    </div>
+  </div><!-- /content -->
+</div><!-- /main -->
+<script>
+/* =====================================================
+   ESTADO GLOBAL
+===================================================== */
+const STATE = {
+  rawData: [],
+  filtered: [],
+  filters: { mes: '', campana: '', agente: '', horaMin: 0, horaMax: 23, resultado: '', fechaMin: null, fechaMax: null },
+  tableSort: { col: 'total', dir: 'desc' },
+  tablePage: 1,
+  tablePageSize: 15,
+  charts: {},
+  tables: {
+    mes:      { sort: { col: 'total', dir: 'desc' }, page: 1, pageSize: 15 },
+    campana:  { sort: { col: 'total', dir: 'desc' }, page: 1, pageSize: 15 }
+  },
+  theme: 'dark'
+};
+/* =====================================================
+   TEMA (CLARO / OSCURO)
+===================================================== */
+const THEMES = {
+  dark:  { fore: '#94a3b8', text: '#e2e8f0', grid: '#1e293b', tooltip: 'dark',  heatmapEmpty: '#1e293b', stroke: '#0f172a' },
+  light: { fore: '#64748b', text: '#0f172a', grid: '#e2e8f0', tooltip: 'light', heatmapEmpty: '#e2e8f0', stroke: '#ffffff' }
+};
+function getTheme() { return THEMES[STATE.theme] || THEMES.dark; }
+function toggleTheme() {
+  STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', STATE.theme);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = STATE.theme === 'dark' ? '🌙' : '☀️';
+  // Recrear las gráficas para que tomen los nuevos colores/tema del tooltip
+  Object.keys(STATE.charts).forEach(k => { try { STATE.charts[k].destroy(); } catch(e) {} });
+  STATE.charts = {};
+  if (STATE.rawData.length) updateDashboard();
+}
+/* =====================================================
+   FUENTES CSV
+===================================================== */
+const SOURCES = [
+  { label: 'Bimestre 1', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTP8ak2bDBc501ARPlYnVRDvXe-g6ivAbaj1lg4-li0FdalqBEmKQn86UHfuCMPduqirCqjPoCA2jZ_/pub?output=csv' },
+  { label: 'Bimestre 2', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTFI0K2Aa5hVpghUqttAaseqpI20aLWjPdMHwFEFMw-YPBU8gflJLvQeM6_kSkhU-WMV65NKQTOiCRQ/pub?output=csv' },
+  { label: 'Mayo',       url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQmV51KQMWke87RVRWB78OSSNTTBChhrfwDWX6sokyfb6NmwAkjQI2ud_QMpbHXR3lQhK41AO6qrZtW/pub?output=csv' },
+  { label: 'Junio',      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIFvBvZR-_qKXRXdSxQ_2TctzxSV9c8ckHiydZx79e5WYa48nzGGh7_7_VzpiMXY4QvCzdce3zd0kP/pub?output=csv' }
+];
+/* =====================================================
+   MAPEADOR FLEXIBLE DE COLUMNAS
+===================================================== */
+function normalize(str) {
+  if (!str) return '';
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+const COL_MAP = {
+  fecha:         ['fecha', 'date', 'fechallamada', 'fechagestion', 'fecha_llamada'],
+  hora:          ['hora', 'hora_inicio', 'horainicio', 'hour', 'time', 'horallamada'],
+  resultado:     ['resultado', 'result', 'estado', 'status', 'disposicion', 'tipificacion'],
+  campana:       ['campana', 'campaign', 'nombre_campana', 'nombrecampana', 'campaña'],
+  agente:        ['agente', 'agent', 'asesor', 'usuario', 'user', 'ejecutivo'],
+  tiempoHablado: ['tiempohablado', 'tiempo_hablado', 'duracion', 'duration', 'talktime', 'talk_time', 'hablado', 'tiempo', 'tiempo hablado'], // <-- Agrega 'tiempo hablado'
+  tiempoTipif:   ['tiempotipificacion', 'tiempodetipificacion', 'tiempo_tipificacion', 'acw', 'wrap', 'tipificacion'],
+  ob: ['ob', 'aplica', 'observacion', 'observaciones', 'tipificacion', 'flag']
+};
+function buildColIndex(headers) {
+  const normHeaders = headers.map(h => ({ orig: h, norm: normalize(h) }));
+  const index = {};
+  
+  for (const [canon, variants] of Object.entries(COL_MAP)) {
+    let found = null;
+    for (const v of variants) {
+      found = normHeaders.find(h => h.norm === v);
+      if (found) break;
+    }
+    if (!found) {
+      for (const v of variants) {
+        found = normHeaders.find(h => h.norm.includes(v));
+        if (found) break;
+      }
+    }
+    if (found) { 
+      index[canon] = found.orig; 
+    }
+  }
+  return index;
+}
+/* =====================================================
+   PARSEO DE TIEMPO  → segundos (MEJORADO)
+===================================================== */
+/* =====================================================
+   PARSEO DE TIEMPO (CORREGIDO PARA FORMATO DECIMAL DE GOOGLE SHEETS)
+===================================================== */
+function parseTime(val) {
+  if (val === undefined || val === null || val === '') return 0;
+  
+  let s = String(val).trim();
+  if (!s || s === '0' || s === 'null' || s === '#n/a') return 0;
+  
+  // 1. Si es un número decimal muy pequeño (formato de fecha/hora de Excel/Sheets)
+  // Convertimos el valor absoluto a segundos (multiplicando por 86400 segundos que tiene un día)
+  const num = parseFloat(s.replace(',', '.'));
+  if (!isNaN(num) && Math.abs(num) < 1 && num !== 0) {
+    return Math.abs(num) * 86400;
+  }
+  // 2. Si el formato viene como HH:MM:SS
+  if (s.includes(':')) {
+    const parts = s.split(':').map(Number);
+    if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
+    if (parts.length === 2) return (parts[0] * 60) + (parts[1] || 0);
+  }
+  
+  // 3. Limpieza estándar para números puros
+  const n = parseFloat(s.replace(/[^0-9.]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+function secsToHHMM(secs) {
+  // Aseguramos que sea número
+  let totalSegundos = Math.round(Number(secs) || 0);
+  
+  const h = Math.floor(totalSegundos / 3600);
+  const m = Math.floor((totalSegundos % 3600) / 60);
+  const s = totalSegundos % 60;
+  
+  return [h, m, s]
+    .map(v => v.toString().padStart(2, '0'))
+    .join(':');
+}
+/* =====================================================
+   PARSEO DE FECHA/HORA
+===================================================== */
+const _dateCache = new Map();
+function parseDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  if (!s) return null;
+  if (_dateCache.has(s)) return _dateCache.get(s);
+  let d = new Date(s);
+  if (!isNaN(d)) { _dateCache.set(s, d); return d; }
+  const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m1) {
+    d = new Date(`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`);
+    if (!isNaN(d)) { _dateCache.set(s, d); return d; }
+  }
+  _dateCache.set(s, null);
+  return null;
+}
+const _mesCache = new Map();
+function getMesLabelCached(d) {
+  if (!d) return 'Desconocido';
+  const key = d.getFullYear() + '-' + d.getMonth();
+  if (_mesCache.has(key)) return _mesCache.get(key);
+  const label = getMesLabel(d);
+  _mesCache.set(key, label);
+  return label;
+}
+function extractHour(fechaStr, horaStr) {
+  if (horaStr) {
+    const hStr = String(horaStr).trim();
+    const hm = hStr.match(/^(\d{1,2})[:hH]/);
+    if (hm) return parseInt(hm[1]);
+    const hp = parseInt(hStr);
+    if (!isNaN(hp) && hp >= 0 && hp <= 23) return hp;
+  }
+  if (fechaStr) {
+    const fs = String(fechaStr).trim();
+    const dm = fs.match(/\s(\d{1,2}):/);
+    if (dm) return parseInt(dm[1]);
+    const dm2 = fs.match(/T(\d{2}):/);
+    if (dm2) return parseInt(dm2[1]);
+  }
+  return -1;
+}
+function getMesLabel(d) {
+  if (!d) return 'Desconocido';
+  
+  // Obtenemos el nombre del mes con la primera letra en mayúscula
+  const label = d.toLocaleString('es', { month: 'long' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+/* =====================================================
+   NORMALIZACIÓN DE RESULTADO
+===================================================== */
+const _resCache = new Map();
+function normalizeResultado(r) {
+  if (!r) return 'Desconocido';
+  const s = String(r).trim();
+  if (_resCache.has(s)) return _resCache.get(s);
+  const low = s.toLowerCase();
+  let out;
+  
+  // IMPORTANTE: Primero las negativas
+  if (/no.?contest|no.?answer|noanswer/.test(low)) out = 'No Contestada';
+  else if (/contest|answer|atend|atendid/.test(low)) out = 'Contestada';
+  else if (/busy|ocup/.test(low)) out = 'Ocupado';
+  else if (/fail|falla|error/.test(low)) out = 'Fallida';
+  else if (/abandon/.test(low)) out = 'Abandonada';
+  else out = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  
+  _resCache.set(s, out);
+  return out;
+}
+/* =====================================================
+   FETCH + PARSE CSV
+===================================================== */
+function fetchCSV(url) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+      const text = await resp.text();
+      Papa.parse(text, {
+        header: true, skipEmptyLines: true, dynamicTyping: false,
+        complete: res => resolve(res), error: err => reject(err)
+      });
+    } catch(err) { reject(err); }
+  });
+}
+function mapRow(row, colIdx, source) {
+  const get = (col) => {
+    const key = colIdx[col];
+    return key ? (row[key] !== undefined ? row[key] : '') : '';
+  };
+  const fechaRaw = get('fecha');
+  const horaRaw  = get('hora');
+  const dateObj  = parseDate(fechaRaw);
+  const hora     = extractHour(fechaRaw, horaRaw);
+  
+  // Normalizar resultado para filtrar
+  const resRaw   = get('resultado');
+  const resultado = normalizeResultado(resRaw);
+  const esContestada = (resultado === 'Contestada');
+  // Lógica: Si es contestada, multiplicamos por 60 para convertir minutos a segundos. 
+  // Si no es contestada, el tiempo es 0.
+  let tHablado = 0;
+  if (esContestada) {
+      const valorMinutos = parseFloat(String(get('tiempoHablado')).replace(',', '.')) || 0;
+      tHablado = valorMinutos * 60;
+  }
+  const tTipif   = parseTime(get('tiempoTipif'));
+  const ob       = String(get('ob')).trim().toUpperCase();
+  return {
+    _source: source,
+    fecha: dateObj, hora: hora, diaSemana: dateObj ? dateObj.getDay() : -1,
+    mes: getMesLabelCached(dateObj), resultado: resultado, resultadoRaw: resRaw,
+    campana: String(get('campana')).trim() || 'Sin campaña',
+    agente: String(get('agente')).trim() || 'Sin agente',
+    tiempoHablado: tHablado, 
+    tiempoTipif: tTipif, 
+    ob: ob,
+    esContestada: esContestada,
+    esBuzon: esContestada && tHablado < 60,
+    obAplica: ob === 'APLICA'
+  };
+}
+/* =====================================================
+   CARGA PRINCIPAL
+===================================================== */
+async function loadAllData() {
+  const results = await Promise.allSettled(
+    SOURCES.map((src, i) =>
+      fetchCSV(src.url).then(res => {
+        markLoader(i, 'ok');
+        return { src, res };
+      }).catch(err => {
+        markLoader(i, 'err');
+        throw err;
+      })
+    )
+  );
+  const errors = [];
+  const allRows = [];
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === 'fulfilled') {
+      const { src, res } = r.value;
+      const headers = res.meta.fields || [];
+      const colIdx  = buildColIndex(headers);
+      const rows    = res.data;
+      const BATCH   = 5000;
+      const progEl  = document.getElementById('loader-progress');
+      for (let start = 0; start < rows.length; start += BATCH) {
+        const chunk = rows.slice(start, start + BATCH);
+        chunk.forEach(row => {
+          try { allRows.push(mapRow(row, colIdx, src.label)); } catch(e) {}
+        });
+        if (progEl) {
+          const pct = Math.min(100, Math.round((start + BATCH) / rows.length * 100));
+          progEl.textContent = `Procesando ${src.label}… ${pct}% (${allRows.length.toLocaleString('es')} filas)`;
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    } else { errors.push(`${SOURCES[i].label}: ${r.reason}`); }
+  }
+  if (errors.length > 0 && allRows.length === 0) {
+    showError('No se pudo cargar ninguna fuente de datos. Errores: ' + errors.join(' | '));
+  } else if (errors.length > 0) {
+    showError(`⚠️ ${errors.length} fuente(s) fallaron. Mostrando datos parciales. | ${errors.join(' | ')}`);
+  }
+  if (allRows.length === 0) return generateDemoData();
+  return allRows;
+}
+function markLoader(i, status) {
+  const el = document.getElementById('src-' + i);
+  if (el) { el.classList.add(status); el.querySelector('.dot').style.background = status === 'ok' ? 'var(--accent-green)' : 'var(--accent-red)'; }
+}
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function generateDemoData() {
+  const resultados = ['Contestada','No Contestada','Ocupado','Fallida'];
+  const campanas   = ['CAMPAÑA A','CAMPAÑA B'];
+  const agentes    = ['Agente Demo 1','Agente Demo 2'];
+  const rows = [];
+  const baseDate = new Date('2024-01-15');
+  for (let i = 0; i < 2000; i++) {
+    const d = new Date(baseDate.getTime() + Math.random() * 180 * 86400000);
+    const res = resultados[Math.floor(Math.random() * resultados.length)];
+    const tH = res === 'Contestada' ? (Math.random() < .3 ? Math.floor(Math.random()*55)+1 : Math.floor(Math.random()*300)+60) : 0;
+    rows.push({
+      _source: 'Demo', fecha: d, hora: Math.floor(Math.random()*14)+7, diaSemana: d.getDay(), mes: getMesLabel(d),
+      resultado: res, resultadoRaw: res, campana: campanas[Math.floor(Math.random()*campanas.length)],
+      agente: agentes[Math.floor(Math.random()*agentes.length)],
+      tiempoHablado: tH, tiempoTipif: Math.random()<.5?Math.floor(Math.random()*60):0,
+      ob: Math.random()<.6?'APLICA':'NO APLICA', esContestada: res==='Contestada', esBuzon: res==='Contestada' && tH < 60, obAplica: Math.random()<.6
+    });
+  }
+  showError('⚙️ Datos de demostración activos (los CSV no respondieron).');
+  return rows;
+}
+/* =====================================================
+   FILTROS
+===================================================== */
+function populateFilters() {
+  const data = STATE.rawData;
+  const meses    = [...new Set(data.map(r => r.mes).filter(Boolean))].sort();
+  const campanas = [...new Set(data.map(r => r.campana).filter(Boolean))].sort();
+  const agentes  = [...new Set(data.map(r => r.agente).filter(Boolean))].sort();
+  const results  = [...new Set(data.map(r => r.resultado).filter(Boolean))].sort();
+  fillSelect('f-mes',      meses,    '— Todos los meses —');
+  fillSelect('f-campana',  campanas, '— Todas las campañas —');
+  fillSelect('f-agente',   agentes,  '— Todos los agentes —');
+  fillSelect('f-resultado',results,  '— Todos los resultados —');
+  document.getElementById('info-total').textContent = data.length.toLocaleString('es');
+  document.getElementById('info-camps').textContent = campanas.length;
+  document.getElementById('info-agents').textContent = agentes.length;
+  const dates = data.map(r=>r.fecha).filter(Boolean);
+  if (dates.length) {
+    let mn = dates[0], mx = dates[0];
+    for (let i = 1; i < dates.length; i++) {
+      if (dates[i] < mn) mn = dates[i];
+      if (dates[i] > mx) mx = dates[i];
+    }
+    document.getElementById('info-dates').textContent = `${mn.toLocaleDateString('es')} – ${mx.toLocaleDateString('es')}`;
+    // Establecer límites min/max en los inputs de fecha según el rango real de datos
+    const toISO = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    };
+    const fMinEl = document.getElementById('f-fecha-min');
+    const fMaxEl = document.getElementById('f-fecha-max');
+    if (fMinEl && fMaxEl) {
+      fMinEl.min = toISO(mn); fMinEl.max = toISO(mx);
+      fMaxEl.min = toISO(mn); fMaxEl.max = toISO(mx);
+    }
+  }
+}
+function fillSelect(id, opts, placeholder) {
+  const el = document.getElementById(id);
+  const cur = el.value;
+  el.innerHTML = `<option value="">${placeholder}</option>`;
+  opts.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    el.appendChild(opt);
+  });
+  if (cur) el.value = cur;
+}
+function applyFilters() {
+  const f = STATE.filters;
+  STATE.filtered = STATE.rawData.filter(r => {
+    if (f.mes       && r.mes       !== f.mes)       return false;
+    if (f.campana   && r.campana   !== f.campana)   return false;
+    if (f.agente    && r.agente    !== f.agente)    return false;
+    if (f.resultado && r.resultado !== f.resultado) return false;
+    if (r.hora >= 0) { if (r.hora < f.horaMin || r.hora > f.horaMax) return false; }
+    if (f.fechaMin && (!r.fecha || r.fecha < f.fechaMin)) return false;
+    if (f.fechaMax && (!r.fecha || r.fecha > f.fechaMax)) return false;
+    return true;
+  });
+  document.getElementById('info-filtered').textContent = STATE.filtered.length.toLocaleString('es');
+  STATE.tablePage = 1;
+  updateDashboard();
+}
+function resetFilters() {
+  STATE.filters = { mes:'', campana:'', agente:'', horaMin:0, horaMax:23, resultado:'', fechaMin:null, fechaMax:null };
+  document.getElementById('f-mes').value = '';
+  document.getElementById('f-campana').value = '';
+  document.getElementById('f-agente').value = '';
+  document.getElementById('f-resultado').value = '';
+  document.getElementById('f-hora-min').value = '';
+  document.getElementById('f-hora-max').value = '';
+  document.getElementById('f-fecha-min').value = '';
+  document.getElementById('f-fecha-max').value = '';
+  applyFilters();
+}
+const filterKeyMap = { 'f-mes': 'mes', 'f-campana': 'campana', 'f-agente': 'agente', 'f-resultado': 'resultado' };
+Object.entries(filterKeyMap).forEach(([id, key]) => {
+  document.getElementById(id).addEventListener('change', () => { STATE.filters[key] = document.getElementById(id).value; applyFilters(); });
+});
+document.getElementById('f-hora-min').addEventListener('change', e => { STATE.filters.horaMin = parseInt(e.target.value) || 0; applyFilters(); });
+document.getElementById('f-hora-max').addEventListener('change', e => { STATE.filters.horaMax = parseInt(e.target.value) !== undefined && e.target.value !== '' ? parseInt(e.target.value) : 23; applyFilters(); });
+document.getElementById('f-fecha-min').addEventListener('change', e => {
+  STATE.filters.fechaMin = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
+  applyFilters();
+});
+document.getElementById('f-fecha-max').addEventListener('change', e => {
+  STATE.filters.fechaMax = e.target.value ? new Date(e.target.value + 'T23:59:59.999') : null;
+  applyFilters();
+});
+/* =====================================================
+   CÁLCULOS
+===================================================== */
+function calcKPIs(data) {
+  const total = data.length;
+  const contestadas = data.filter(r => r.esContestada);
+  const nContest = contestadas.length;
+  
+  const tHablado = data.reduce((a, r) => a + (Number(r.tiempoHablado) || 0), 0);
+  
+  // Filtramos registros válidos para el tiempo de tipificación
+  const registrosAplica = data.filter(r => r.obAplica === true);
+  
+  // Sumamos los tiempos, asegurando que sea un número
+  const tTipifSum = registrosAplica.reduce((a, r) => a + (Number(r.tiempoTipif) || 0), 0);
+  
+  // CALCULAMOS EL PROMEDIO (ACW)
+  // Si no hay registros que apliquen, el promedio es 0
+  const promedioTipif = registrosAplica.length > 0 ? (tTipifSum / registrosAplica.length) : 0;
+  
+  const buzon = contestadas.filter(r => r.esBuzon).length;
+  const pctContact = total > 0 ? (nContest / total * 100) : 0;
+  const pctBuzon = nContest > 0 ? (buzon / nContest * 100) : 0;
+  console.log("Registros filtrados (OB=APLICA):", registrosAplica.length);
+  console.log("Promedio calculado:", promedioTipif);
+  
+  return { total, nContest, tHablado, tTipif: promedioTipif, buzon, pctContact, pctBuzon };
+}
+function calcDistResultados(data) {
+  const dist = {};
+  data.forEach(r => { dist[r.resultado] = (dist[r.resultado] || 0) + 1; });
+  return dist;
+}
+function calcHeatmap(data) {
+  const grid = {};
+  data.forEach(r => {
+    const h = r.hora >= 0 ? r.hora : -1;
+    if (h < 0) return;
+    const d = r.diaSemana >= 0 ? r.diaSemana : 0;
+    if (!grid[h]) grid[h] = {};
+    grid[h][d] = (grid[h][d] || 0) + 1;
+  });
+  const horas = [...new Set(data.map(r=>r.hora).filter(h=>h>=0))].sort((a,b)=>a-b);
+  const diasOrder = [1,2,3,4,5,6,0];
+  const series = diasOrder.map(d => ({
+    name: DIAS[d], data: horas.map(h => ({ x: `${h}:00`, y: (grid[h] && grid[h][d]) ? grid[h][d] : 0 }))
+  }));
+  return { series, horas };
+}
+function calcContactByHora(data) {
+  const byHora = {};
+  data.forEach(r => {
+    const h = r.hora >= 0 ? r.hora : -1;
+    if (h < 0) return;
+    if (!byHora[h]) byHora[h] = { total: 0, cont: 0 };
+    byHora[h].total++;
+    if (r.esContestada) byHora[h].cont++;
+  });
+  const horas = Object.keys(byHora).map(Number).sort((a,b)=>a-b);
+  return {
+    horas: horas.map(h => `${h}:00`),
+    pctContact: horas.map(h => byHora[h].total > 0 ? +(byHora[h].cont/byHora[h].total*100).toFixed(1) : 0),
+    total: horas.map(h => byHora[h].total),
+    cont:  horas.map(h => byHora[h].cont)
+  };
+}
+/* =====================================================
+   TABLA DE AGENTES (TIEMPO PROMEDIO - TODAS LAS CONTESTADAS)
+===================================================== */
+function calcAgentTable(data) {
+  const agents = {};
+  data.forEach(r => {
+    const a = r.agente;
+    if (!agents[a]) {
+      agents[a] = { 
+        agente: a, total: 0, contestadas: 0, 
+        tHabladoSum: 0, tHabladoCount: 0, 
+        tTipifSum: 0, tTipifCount: 0, 
+        buzon: 0 
+      };
+    }
+    agents[a].total++;
+    // 1. Lógica Contestadas (Aseguramos que esContestada sea booleano)
+    if (r.esContestada) {
+      agents[a].contestadas++;
+      
+      // TMO: Solo llamadas > 60s
+      if (r.tiempoHablado > 0) {
+        agents[a].tHabladoSum += r.tiempoHablado;
+        agents[a].tHabladoCount++;
+      }
+    }
+    // 2. Lógica Tipificación (Solo OB=APLICA)
+    if (r.obAplica && r.tiempoTipif > 0) {
+      agents[a].tTipifSum += r.tiempoTipif;
+      agents[a].tTipifCount++;
+    }
+    if (r.esBuzon) agents[a].buzon++;
+  });
+  return Object.values(agents).map(a => ({
+    ...a,
+    // Calculamos los promedios y porcentajes
+    contactabilidad: a.total > 0 ? (a.contestadas / a.total * 100) : 0,
+    tmo: a.tHabladoCount > 0 ? Math.round(a.tHabladoSum / a.tHabladoCount) : 0,
+    promTipif: a.tTipifCount > 0 ? Math.round(a.tTipifSum / a.tTipifCount) : 0,
+    pctBuzon: a.contestadas > 0 ? (a.buzon / a.contestadas * 100) : 0
+  }));
+}
+/* =====================================================
+   TABLA GENÉRICA POR GRUPO (MES / CAMPAÑA)
+===================================================== */
+function calcGroupTable(data, field) {
+  const groups = {};
+  data.forEach(r => {
+    const g = r[field] || 'Desconocido';
+    if (!groups[g]) {
+      groups[g] = {
+        label: g, total: 0, contestadas: 0,
+        tHabladoSum: 0, tHabladoCount: 0,
+        tTipifSum: 0, tTipifCount: 0,
+        buzon: 0
+      };
+    }
+    groups[g].total++;
+    if (r.esContestada) {
+      groups[g].contestadas++;
+      if (r.tiempoHablado > 0) {
+        groups[g].tHabladoSum += r.tiempoHablado;
+        groups[g].tHabladoCount++;
+      }
+    }
+    if (r.obAplica && r.tiempoTipif > 0) {
+      groups[g].tTipifSum += r.tiempoTipif;
+      groups[g].tTipifCount++;
+    }
+    if (r.esBuzon) groups[g].buzon++;
+  });
+  return Object.values(groups).map(g => ({
+    ...g,
+    contactabilidad: g.total > 0 ? (g.contestadas / g.total * 100) : 0,
+    tmo: g.tHabladoCount > 0 ? Math.round(g.tHabladoSum / g.tHabladoCount) : 0,
+    promTipif: g.tTipifCount > 0 ? Math.round(g.tTipifSum / g.tTipifCount) : 0,
+    pctBuzon: g.contestadas > 0 ? (g.buzon / g.contestadas * 100) : 0
+  }));
+}
+function renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId) {
+  let rows = calcGroupTable(STATE.filtered, field);
+  const st = STATE.tables[stateKey];
+  rows.sort((a,b) => {
+    const va = typeof a[st.sort.col] === 'string' ? a[st.sort.col].toLowerCase() : a[st.sort.col];
+    const vb = typeof b[st.sort.col] === 'string' ? b[st.sort.col].toLowerCase() : b[st.sort.col];
+    if (va < vb) return st.sort.dir === 'asc' ? -1 : 1;
+    if (va > vb) return st.sort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const ps = st.pageSize; const total = rows.length; const pages = Math.ceil(total / ps);
+  const p = Math.min(st.page, pages || 1); st.page = p;
+  const slice = rows.slice((p-1)*ps, p*ps);
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
+  } else {
+    tbody.innerHTML = slice.map(a => `
+      <tr>
+        <td style="font-weight:600">${escHTML(a.label)}</td>
+        <td>${a.total.toLocaleString('es')}</td>
+        <td>${a.contestadas.toLocaleString('es')}</td>
+        <td><span class="badge-result ${a.contactabilidad >= 40 ? 'badge-green' : 'badge-red'}">${a.contactabilidad.toFixed(1)}%</span></td>
+        <td>${secsToHHMM(a.tmo)}</td>
+        <td><span class="badge-result ${a.pctBuzon > 20 ? 'badge-red' : 'badge-green'}">${a.pctBuzon.toFixed(1)}%</span></td>
+        <td><span style="font-weight:600">${secsToHHMM(a.promTipif)}</span></td>
+      </tr>`).join('');
+  }
+  const pagInfoEl = document.getElementById(pagInfoId);
+  if (pagInfoEl) pagInfoEl.textContent = `Página ${p} de ${pages || 1} · ${total.toLocaleString('es')} registros`;
+  const btnsEl = document.getElementById(pagBtnsId);
+  if (!btnsEl) return;
+  btnsEl.innerHTML = '';
+  const addBtn = (label, page, disabled, active) => {
+    const b = document.createElement('button'); b.className = 'pag-btn' + (active ? ' active' : ''); b.textContent = label; b.disabled = disabled;
+    if (!disabled) b.onclick = () => { st.page = page; renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId); };
+    btnsEl.appendChild(b);
+  };
+  addBtn('‹ Ant', p-1, p <= 1, false);
+  const start = Math.max(1, p-2); const end = Math.min(pages, p+2);
+  for (let i = start; i <= end; i++) addBtn(i, i, false, i===p);
+  addBtn('Sig ›', p+1, p >= pages, false);
+}
+function sortGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId, col, prefix) {
+  const st = STATE.tables[stateKey];
+  if (st.sort.col === col) { st.sort.dir = st.sort.dir === 'asc' ? 'desc' : 'asc'; }
+  else { st.sort.col = col; st.sort.dir = 'desc'; }
+  document.querySelectorAll('.sort-icon-' + prefix).forEach(el => el.textContent = '↕');
+  const icon = document.getElementById('sort-' + prefix + '-' + col);
+  if (icon) icon.textContent = st.sort.dir === 'asc' ? '↑' : '↓';
+  renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId);
+}
+const RESULT_COLORS = { 'Contestada': '#22c55e', 'No Contestada': '#ef4444', 'Ocupado': '#f59e0b', 'Fallida': '#64748b', 'Abandonada': '#a855f7', 'Desconocido': '#334155' };
+function getResultColor(r) { return RESULT_COLORS[r] || '#3b82f6'; }
+/* =====================================================
+   ACTUALIZAR DASHBOARD
+===================================================== */
+function updateDashboard() {
+  const data = STATE.filtered;
+  const kpis = calcKPIs(data);
+  const tipifEl = document.getElementById('kpi-tipif');
+  tipifEl.textContent = secsToHHMM(kpis.tTipif);
+  document.getElementById('kpi-total').textContent = kpis.total.toLocaleString('es');
+  document.getElementById('kpi-total-sub').textContent = `${STATE.rawData.length.toLocaleString('es')} registros totales`;
+  // --- NUEVA LÓGICA PARA EL KPI DE TIEMPO (TMO) ---
+  const nContestadas = kpis.nContest;
+  const tmo = nContestadas > 0 ? (kpis.tHablado / nContestadas) : 0;
+  document.getElementById('kpi-tiempo').textContent = secsToHHMM(tmo);
+  document.getElementById('kpi-tiempo-sub').textContent = `TMO | ${Math.round(kpis.tHablado/60).toLocaleString('es')} min. totales`;
+  // --- RESTO DEL DASHBOARD ---
+  const contEl = document.getElementById('kpi-contact');
+  contEl.textContent = kpis.pctContact.toFixed(1) + '%';
+  contEl.className = 'kpi-value';
+  document.getElementById('kpi-contact-sub').textContent = `${kpis.nContest.toLocaleString('es')} de ${kpis.total.toLocaleString('es')} llamadas`;
+  const buzonEl = document.getElementById('kpi-buzon');
+  const buzonCard = document.getElementById('kpi-buzon-card');
+  buzonEl.textContent = kpis.pctBuzon.toFixed(1) + '%';
+  buzonEl.className = 'kpi-value ' + (kpis.pctBuzon > 20 ? 'alert' : kpis.pctBuzon > 10 ? 'warn' : '');
+  buzonCard.className = 'kpi-card ' + (kpis.pctBuzon > 20 ? 'red' : 'amber');
+  buzonEl.textContent = `${kpis.buzon} contestadas < 1 min`;
+  updateDonutChart(data);
+  updateBarChart(data);
+  updateHeatmap(data);
+  updateHoraChart(data);
+  updateTipificacionCharts(data);
+  updateAgentTable(data);
+  renderGroupTable('mes', 'mes', 'mes-tbody', 'mes-pag-info', 'mes-pag-btns');
+  renderGroupTable('campana', 'campana', 'campana-tbody', 'campana-pag-info', 'campana-pag-btns');
+  document.getElementById('last-update').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es');
+}
+/* =====================================================
+   GRÁFICOS
+===================================================== */
+function updateDonutChart(data) {
+  const dist = calcDistResultados(data);
+  const labels = Object.keys(dist);
+  const values = Object.values(dist);
+  const colors = labels.map(getResultColor);
+  const T = getTheme();
+  const opts = {
+    chart: { type: 'donut', height: 310, background: 'transparent', foreColor: T.fore, toolbar: { show: false } },
+    series: values, labels: labels, colors: colors,
+    plotOptions: { pie: { donut: { size: '68%', labels: { show: true, name: { show: true, fontSize: '13px', color: T.text }, value: { show: true, fontSize: '20px', fontWeight: 800, color: T.text, formatter: v => parseInt(v).toLocaleString('es') }, total: { show: true, label: 'Total', color: T.fore, formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0).toLocaleString('es') } } } } },
+    dataLabels: { enabled: false }, legend: { position: 'bottom', fontSize: '12px', labels: { colors: T.fore }, markers: { width: 8, height: 8, radius: 4 } },
+    tooltip: { theme: T.tooltip, y: { formatter: v => `${v.toLocaleString('es')} llamadas` } }, stroke: { width: 0 }
+  };
+  if (STATE.charts.donut) STATE.charts.donut.updateOptions(opts);
+  else { const el = document.getElementById('chart-donut'); el.innerHTML = ''; STATE.charts.donut = new ApexCharts(el, opts); STATE.charts.donut.render(); }
+}
+function updateBarChart(data) {
+  const dist = calcDistResultados(data);
+  const sorted = Object.entries(dist).sort((a,b) => b[1]-a[1]);
+  const labels = sorted.map(e => e[0]);
+  const values = sorted.map(e => e[1]);
+  const colors = labels.map(getResultColor);
+  const total = values.reduce((a,b)=>a+b,0);
+  const T = getTheme();
+  const opts = {
+    chart: { type: 'bar', height: 310, background: 'transparent', foreColor: T.fore, toolbar: { show: false } },
+    series: [{ name: 'Llamadas', data: values }], xaxis: { categories: labels, labels: { style: { colors: T.fore, fontSize: '11px' } } }, yaxis: { labels: { style: { colors: T.fore }, formatter: v => v.toLocaleString('es') } }, colors: colors,
+    plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 4, dataLabels: { position: 'right' } } },
+    dataLabels: { enabled: true, formatter: (v) => { const pct = total > 0 ? (v/total*100).toFixed(1) : 0; return `${v.toLocaleString('es')} (${pct}%)`; }, style: { fontSize: '11px', colors: [T.text] }, offsetX: 5 },
+    legend: { show: false }, grid: { borderColor: T.grid, xaxis: { lines: { show: true } } }, tooltip: { theme: T.tooltip, y: { formatter: v => `${v.toLocaleString('es')} llamadas` } }
+  };
+  if (STATE.charts.bars) STATE.charts.bars.updateOptions(opts);
+  else { const el = document.getElementById('chart-bars'); el.innerHTML = ''; STATE.charts.bars = new ApexCharts(el, opts); STATE.charts.bars.render(); }
+}
+function updateHeatmap(data) {
+  const { series } = calcHeatmap(data);
+  if (!series[0] || series[0].data.length === 0) { document.getElementById('chart-heatmap').innerHTML = '<div class="no-data">Sin datos horarios disponibles</div>'; return; }
+  let maxVal = 0; series.forEach(s => s.data.forEach(d => { if (d.y > maxVal) maxVal = d.y; }));
+  const T = getTheme();
+  const opts = {
+    chart: { type: 'heatmap', height: 220, background: 'transparent', foreColor: T.fore, toolbar: { show: false } }, series: series, xaxis: { type: 'category', labels: { style: { colors: T.fore, fontSize: '10px' }, rotate: -45 } }, yaxis: { labels: { style: { colors: T.fore, fontSize: '11px' } } }, dataLabels: { enabled: false },
+    plotOptions: { heatmap: { radius: 2, enableShades: true, colorScale: { ranges: [ { from: 0, to: 0, color: T.heatmapEmpty, name: '0' }, { from: 1, to: Math.floor(maxVal*.25), color: '#1d4ed8', name: 'Bajo' }, { from: Math.floor(maxVal*.25)+1, to: Math.floor(maxVal*.5), color: '#2563eb', name: 'Medio' }, { from: Math.floor(maxVal*.5)+1, to: Math.floor(maxVal*.75), color: '#22c55e', name: 'Alto' }, { from: Math.floor(maxVal*.75)+1, to: maxVal+1, color: '#16a34a', name: 'Muy Alto' } ] } } },
+    legend: { show: true, position: 'top', labels: { colors: T.fore } }, stroke: { width: 2, colors: [T.stroke] }, tooltip: { theme: T.tooltip, y: { title: { formatter: () => 'Llamadas:' }, formatter: v => v.toLocaleString('es') } }
+  };
+  if (STATE.charts.heatmap) STATE.charts.heatmap.updateOptions(opts);
+  else { const el = document.getElementById('chart-heatmap'); el.innerHTML = ''; STATE.charts.heatmap = new ApexCharts(el, opts); STATE.charts.heatmap.render(); }
+}
+function updateHoraChart(data) {
+  const hd = calcContactByHora(data);
+  if (!hd.horas.length) return;
+  const noContact = hd.total.map((t,i) => t - hd.cont[i]);
+  const T = getTheme();
+  const opts = {
+    chart: { type: 'bar', height: 280, stacked: true, stackType: '100%', background: 'transparent', foreColor: T.fore, toolbar: { show: false } },
+    series: [ { name: 'Contestadas', data: hd.cont }, { name: 'No Contestadas / Fallidas', data: noContact } ], xaxis: { categories: hd.horas, labels: { style: { colors: T.fore, fontSize: '10px' }, rotate: -45 } }, yaxis: { labels: { style: { colors: T.fore }, formatter: v => v + '%' } }, colors: ['#22c55e', '#ef4444'], plotOptions: { bar: { borderRadius: 2 } },
+    dataLabels: { enabled: true, formatter: (v) => { if (v < 5) return ''; return v.toFixed(0) + '%'; }, style: { fontSize: '10px', colors: ['#fff'] } }, fill: { opacity: 1 }, legend: { position: 'top', labels: { colors: T.fore }, markers: { width: 8, height: 8, radius: 4 } }, grid: { borderColor: T.grid },
+    tooltip: { theme: T.tooltip, y: { formatter: (v, opts2) => { const idx = opts2.dataPointIndex; const seriesIdx = opts2.seriesIndex; const abs = seriesIdx === 0 ? hd.cont[idx] : noContact[idx]; const pct = hd.total[idx] > 0 ? (abs/hd.total[idx]*100).toFixed(1) : 0; return `${abs.toLocaleString('es')} (${pct}%)`; }} }
+  };
+  if (STATE.charts.hora) STATE.charts.hora.updateOptions(opts);
+  else { const el = document.getElementById('chart-hora'); el.innerHTML = ''; STATE.charts.hora = new ApexCharts(el, opts); STATE.charts.hora.render(); }
+}
+/* =====================================================
+   GRÁFICOS DE TIEMPO DE TIPIFICACIÓN (PROMEDIOS)
+===================================================== */
+function updateTipificacionCharts(data) {
+  const byRes = {}; const byCamp = {}; const byAgent = {};
+  
+  data.forEach(r => {
+    // Si la lógica de negocio es: "solo promediar los que tengan tiempo > 0"
+    // pero deben ser APLICA, asegúrate de normalizar la comparación
+    if (r.ob !== 'APLICA') return; 
+    // Solo ignora si el tiempo es menor a 0, pero deja pasar el 0 si quieres
+    // que afecte el promedio (es decir, el agente tardó 0 segundos)
+    const t = r.tiempoTipif || 0;
+    
+    // ... resto del código
+    
+    const res = r.resultado || 'Desconocido';
+    const camp = r.campana || 'Sin campaña';
+    const ag = r.agente || 'Sin agente';
+    if (!byRes[res]) byRes[res] = { sum: 0, count: 0 };
+    byRes[res].sum += t; byRes[res].count++;
+    if (!byCamp[camp]) byCamp[camp] = { sum: 0, count: 0 };
+    byCamp[camp].sum += t; byCamp[camp].count++;
+    if (!byAgent[ag]) byAgent[ag] = { sum: 0, count: 0 };
+    byAgent[ag].sum += t; byAgent[ag].count++;
+  });
+  const getAvg = (val) => val.count === 0 ? 0 : Math.round(val.sum / val.count);
+  const prep = (dict, limit = 10) => Object.entries(dict)
+    .map(([key, val]) => [key, getAvg(val)])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
+  const dRes = prep(byRes, 10);
+  const dCamp = prep(byCamp, 10);
+  const dAgent = prep(byAgent, 10);
+  const renderChart = (id, title, dataArr, color) => {
+    const T = getTheme();
+    const opts = {
+      chart: { type: 'bar', height: 280, background: 'transparent', foreColor: T.fore, toolbar: { show: false } },
+      series: [{ name: 'Prom. Tipif.', data: dataArr.map(d => d[1]) }],
+      xaxis: { 
+        categories: dataArr.map(d => d[0]), 
+        labels: { formatter: v => secsToHHMM(v), style: { colors: T.fore, fontSize: '10px' } } 
+      },
+      colors: [color],
+      plotOptions: { bar: { horizontal: true, borderRadius: 3, dataLabels: { position: 'right' } } },
+      dataLabels: { enabled: true, formatter: v => secsToHHMM(v), style: { fontSize: '11px', colors: [T.text] }, offsetX: 5 },
+      tooltip: { theme: T.tooltip, y: { formatter: v => secsToHHMM(v) } },
+      grid: { borderColor: T.grid, xaxis: { lines: { show: true } } },
+      title: { text: title, style: { color: T.text, fontSize: '12px', fontWeight: 600 }, margin: 20 }
+    };
+    if (STATE.charts[id]) STATE.charts[id].updateOptions(opts);
+    else { const el = document.getElementById(id); if (el) { el.innerHTML = ''; STATE.charts[id] = new ApexCharts(el, opts); STATE.charts[id].render(); } }
+  };
+  renderChart('chart-tipif-res', 'Por Resultado', dRes, '#a855f7');
+  renderChart('chart-tipif-camp', 'Por Campaña', dCamp, '#3b82f6');
+  renderChart('chart-tipif-agent', 'Por Asesor (Top 10)', dAgent, '#f59e0b');
+}
+/* =====================================================
+   TABLA DE AGENTES RENDER
+===================================================== */
+function updateAgentTable(data) {
+  let rows = calcAgentTable(data);
+  const { col, dir } = STATE.tableSort;
+  rows.sort((a,b) => {
+    const va = typeof a[col] === 'string' ? a[col].toLowerCase() : a[col];
+    const vb = typeof b[col] === 'string' ? b[col].toLowerCase() : b[col];
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const ps = STATE.tablePageSize; const total = rows.length; const pages = Math.ceil(total / ps);
+  const p = Math.min(STATE.tablePage, pages || 1); STATE.tablePage = p;
+  const slice = rows.slice((p-1)*ps, p*ps);
+  const tbody = document.getElementById('agent-tbody');
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Sin datos de agentes</td></tr>';
+  } else {
+    tbody.innerHTML = slice.map(a => {
+      const cClass = a.contactabilidad >= 40 ? 'badge-green' : a.contactabilidad >= 20 ? 'badge-amber' : 'badge-red';
+      const bClass = a.pctBuzon > 20 ? 'badge-red' : a.pctBuzon > 10 ? 'badge-amber' : 'badge-green';
+      const barW = Math.min(a.contactabilidad, 100).toFixed(1);
+      // ... dentro de la función updateAgentTable, en el .map de las filas:
+// Dentro de tu .map() en updateAgentTable:
+return `
+  <tr>
+    <td style="font-weight:600">${escHTML(a.agente)}</td>
+    <td>${a.total.toLocaleString('es')}</td>
+    <td>${a.contestadas.toLocaleString('es')}</td>
+    <td><span class="badge-result ${a.contactabilidad >= 40 ? 'badge-green' : 'badge-red'}">${a.contactabilidad.toFixed(1)}%</span></td>
+    <td>${secsToHHMM(a.tmo)}</td>
+    <td><span class="badge-result ${a.pctBuzon > 20 ? 'badge-red' : 'badge-green'}">${a.pctBuzon.toFixed(1)}%</span></td>
+    <td><span style="font-weight:600">${secsToHHMM(a.promTipif)}</span></td>
+  </tr>`;
+    }).join('');
+  }
+  document.getElementById('pag-info').textContent = `Página ${p} de ${pages || 1} · ${total.toLocaleString('es')} agentes`;
+  const btnsEl = document.getElementById('pag-btns'); btnsEl.innerHTML = '';
+  const addBtn = (label, page, disabled, active) => {
+    const b = document.createElement('button'); b.className = 'pag-btn' + (active ? ' active' : ''); b.textContent = label; b.disabled = disabled;
+    if (!disabled) b.onclick = () => { STATE.tablePage = page; updateAgentTable(STATE.filtered); };
+    btnsEl.appendChild(b);
+  };
+  addBtn('‹ Ant', p-1, p <= 1, false);
+  const start = Math.max(1, p-2); const end = Math.min(pages, p+2);
+  for (let i = start; i <= end; i++) addBtn(i, i, false, i===p);
+  addBtn('Sig ›', p+1, p >= pages, false);
+}
+function sortTable(col) {
+  if (STATE.tableSort.col === col) { STATE.tableSort.dir = STATE.tableSort.dir === 'asc' ? 'desc' : 'asc'; }
+  else { STATE.tableSort.col = col; STATE.tableSort.dir = 'desc'; }
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '↕');
+  const icon = document.getElementById('sort-' + col);
+  if (icon) icon.textContent = STATE.tableSort.dir === 'asc' ? '↑' : '↓';
+  updateAgentTable(STATE.filtered);
+}
+function escHTML(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); document.getElementById('main').classList.toggle('expanded'); }
+/* =====================================================
+   INIT
+===================================================== */
+async function init() {
+  try {
+    const data = await loadAllData();
+    STATE.rawData = data; STATE.filtered = data;
+    populateFilters();
+    updateDashboard();
+    await new Promise(r => setTimeout(r, 600));
+    document.getElementById('loading-overlay').style.opacity = '0';
+    document.getElementById('loading-overlay').style.transition = 'opacity .5s';
+    setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; }, 600);
+  } catch(e) {
+    console.error(e);
+    const progEl = document.getElementById('loader-progress');
+    if (progEl) progEl.textContent = 'Error: ' + e.message;
+    const ring = document.querySelector('.loader-ring');
+    if (ring) ring.style.borderTopColor = 'var(--accent-red)';
+    try {
+      STATE.rawData = generateDemoData(); STATE.filtered = STATE.rawData;
+      populateFilters(); updateDashboard();
+      await new Promise(r => setTimeout(r, 800));
+      document.getElementById('loading-overlay').style.opacity = '0';
+      document.getElementById('loading-overlay').style.transition = 'opacity .5s';
+      setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; }, 600);
+    } catch(e2) { console.error('Demo data also failed:', e2); }
+  }
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
