@@ -33,6 +33,7 @@
       --text-main: #0f172a;
       --text-muted: #64748b;
     }
+    [data-theme="light"] .kpi-icon { opacity: 0.25; }
     [data-theme="light"] #sidebar,
     [data-theme="light"] #topbar { background: #ffffff; }
     [data-theme="light"] .filter-select option { background: #ffffff; }
@@ -323,12 +324,13 @@
   <div class="loader-ring"></div>
   <div>
     <div class="loader-text" style="font-weight:700; font-size:1rem; color:#e2e8f0;">Cargando datos de Dyalogo</div>
-    <div class="loader-text" id="loader-progress">Consolidando 4 fuentes de datos...</div>
+    <div class="loader-text" id="loader-progress">Consolidando 5 fuentes de datos...</div>
     <div class="loader-sources" id="loader-sources">
       <div class="loader-src" id="src-0"><div class="dot"></div> Bimestre 1</div>
       <div class="loader-src" id="src-1"><div class="dot"></div> Bimestre 2</div>
       <div class="loader-src" id="src-2"><div class="dot"></div> Mayo</div>
       <div class="loader-src" id="src-3"><div class="dot"></div> Junio</div>
+      <div class="loader-src" id="src-4"><div class="dot"></div> Julio</div>
     </div>
   </div>
 </div>
@@ -409,9 +411,9 @@
         <div class="kpi-icon">📞</div>
       </div>
       <div class="kpi-card green">
-        <div class="kpi-label">⏱ Tiempo Hablado Total</div>
+        <div class="kpi-label">⏱ TMO Real (Excl. &lt; 1 min)</div>
         <div class="kpi-value" id="kpi-tiempo">—</div>
-        <div class="kpi-sub" id="kpi-tiempo-sub">horas de conversación</div>
+        <div class="kpi-sub" id="kpi-tiempo-sub">minutos totales</div>
         <div class="kpi-icon">⏱</div>
       </div>
       <div class="kpi-card purple">
@@ -420,17 +422,35 @@
         <div class="kpi-sub" id="kpi-tipif-sub">solo registros OB=APLICA</div>
         <div class="kpi-icon">📝</div>
       </div>
+      <div class="kpi-card green" style="border-color: #3b82f6;">
+        <div class="kpi-label">✅ Contactabilidad Real</div>
+        <div class="kpi-value" id="kpi-contact-real">—</div>
+        <div class="kpi-sub" id="kpi-contact-real-sub">llamadas contestadas totales</div>
+        <div class="kpi-icon">✅</div>
+      </div>
       <div class="kpi-card green">
-        <div class="kpi-label">✅ Contactabilidad</div>
+        <div class="kpi-label">✅ Contact. Estimada</div>
         <div class="kpi-value" id="kpi-contact">—</div>
-        <div class="kpi-sub" id="kpi-contact-sub">llamadas contestadas</div>
+        <div class="kpi-sub" id="kpi-contact-sub">excluye llamadas &lt;10s</div>
         <div class="kpi-icon">✅</div>
       </div>
       <div class="kpi-card amber" id="kpi-buzon-card">
-        <div class="kpi-label">⚠️ Alerta Buzón (&lt;1 min)</div>
+        <div class="kpi-label">⚠️ Alerta Buzón (&lt;10 s)</div>
         <div class="kpi-value" id="kpi-buzon">—</div>
         <div class="kpi-sub" id="kpi-buzon-sub">de contestadas son buzón</div>
         <div class="kpi-icon">⚠️</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">☎️ Promedio Marcaciones</div>
+        <div class="kpi-value" id="kpi-prom-marcaciones">—</div>
+        <div class="kpi-sub" id="kpi-prom-marcaciones-sub">intentos por número</div>
+        <div class="kpi-icon">☎️</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">🎯 Intentos para Contestar</div>
+        <div class="kpi-value" id="kpi-intentos-contestar">—</div>
+        <div class="kpi-sub" id="kpi-intentos-contestar-sub">promedio para 1er contacto</div>
+        <div class="kpi-icon">🎯</div>
       </div>
     </div>
     <!-- CHARTS ROW 1 -->
@@ -463,12 +483,14 @@
     <!-- TIEMPOS DE TIPIFICACIÓN -->
    <div class="chart-card">
       <div class="chart-title">⏱️ Análisis de Tiempo de Tipificación</div>
-      <div class="chart-subtitle">Promedio de tiempo de gestión (ACW) por Resultado, Campaña y Asesor (Top 10)</div>
+      <div class="chart-subtitle">Promedio de tiempo de gestión (ACW) por Resultado, Campaña, Asesor (Top 10) y Mes</div>
       <div class="charts-row" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 1rem;">
         <div id="chart-tipif-res"></div>
         <div id="chart-tipif-camp"></div>
         <div id="chart-tipif-agent"></div>
+        <div id="chart-tipif-mes"></div>
       </div>
+      <div id="tipif-pivot-table" style="margin-top: 2rem;"></div>
     </div>
     <!-- AGENT TABLE -->
     <div class="chart-card">
@@ -480,10 +502,12 @@
             <tr>
               <th onclick="sortTable('agente')">Agente <span class="sort-icon" id="sort-agente">↕</span></th>
               <th onclick="sortTable('total')">Total Llamadas <span class="sort-icon" id="sort-total">↕</span></th>
+              <th onclick="sortTable('vueltas')">Vueltas <span class="sort-icon" id="sort-vueltas">↕</span></th>
               <th onclick="sortTable('contestadas')">Contestadas <span class="sort-icon" id="sort-contestadas">↕</span></th>
-              <th onclick="sortTable('contactabilidad')">% Contactabilidad <span class="sort-icon" id="sort-contactabilidad">↕</span></th>
+              <th onclick="sortTable('contactabilidadReal')">% Contact. Real <span class="sort-icon" id="sort-contactabilidadReal">↕</span></th>
+              <th onclick="sortTable('contactabilidad')">% Contact. Est. <span class="sort-icon" id="sort-contactabilidad">↕</span></th>
               <th onclick="sortTable('tiempoPromedio')">TIEMPO HABLADO <span class="sort-icon" id="sort-tiempoPromedio">↕</span></th>
-              <th onclick="sortTable('pctBuzon')">% Buzón &lt;1min <span class="sort-icon" id="sort-pctBuzon">↕</span></th>
+              <th onclick="sortTable('pctBuzon')">% Buzón &lt;10s <span class="sort-icon" id="sort-pctBuzon">↕</span></th>
               <th onclick="sortTable('tTipifTotal')">Tiempo Tipif. <span class="sort-icon" id="sort-tTipifTotal">↕</span></th>
             </tr>
           </thead>
@@ -505,10 +529,12 @@
             <tr>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','label','mes')">Mes <span class="sort-icon-mes" id="sort-mes-label">↕</span></th>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','total','mes')">Total Llamadas <span class="sort-icon-mes" id="sort-mes-total">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','vueltas','mes')">Vueltas <span class="sort-icon-mes" id="sort-mes-vueltas">↕</span></th>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','contestadas','mes')">Contestadas <span class="sort-icon-mes" id="sort-mes-contestadas">↕</span></th>
-              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','contactabilidad','mes')">% Contactabilidad <span class="sort-icon-mes" id="sort-mes-contactabilidad">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','contactabilidadReal','mes')">% Contact. Real <span class="sort-icon-mes" id="sort-mes-contactabilidadReal">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','contactabilidad','mes')">% Contact. Est. <span class="sort-icon-mes" id="sort-mes-contactabilidad">↕</span></th>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','tmo','mes')">TIEMPO HABLADO <span class="sort-icon-mes" id="sort-mes-tmo">↕</span></th>
-              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','pctBuzon','mes')">% Buzón &lt;1min <span class="sort-icon-mes" id="sort-mes-pctBuzon">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','pctBuzon','mes')">% Buzón &lt;10s <span class="sort-icon-mes" id="sort-mes-pctBuzon">↕</span></th>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','promTipif','mes')">Tiempo Tipif. <span class="sort-icon-mes" id="sort-mes-promTipif">↕</span></th>
             </tr>
           </thead>
@@ -530,10 +556,12 @@
             <tr>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','label','campana')">Campaña <span class="sort-icon-campana" id="sort-campana-label">↕</span></th>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','total','campana')">Total Llamadas <span class="sort-icon-campana" id="sort-campana-total">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','vueltas','campana')">Vueltas <span class="sort-icon-campana" id="sort-campana-vueltas">↕</span></th>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','contestadas','campana')">Contestadas <span class="sort-icon-campana" id="sort-campana-contestadas">↕</span></th>
-              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','contactabilidad','campana')">% Contactabilidad <span class="sort-icon-campana" id="sort-campana-contactabilidad">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','contactabilidadReal','campana')">% Contact. Real <span class="sort-icon-campana" id="sort-campana-contactabilidadReal">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','contactabilidad','campana')">% Contact. Est. <span class="sort-icon-campana" id="sort-campana-contactabilidad">↕</span></th>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','tmo','campana')">TIEMPO HABLADO <span class="sort-icon-campana" id="sort-campana-tmo">↕</span></th>
-              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','pctBuzon','campana')">% Buzón &lt;1min <span class="sort-icon-campana" id="sort-campana-pctBuzon">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','pctBuzon','campana')">% Buzón &lt;10s <span class="sort-icon-campana" id="sort-campana-pctBuzon">↕</span></th>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','promTipif','campana')">Tiempo Tipif. <span class="sort-icon-campana" id="sort-campana-promTipif">↕</span></th>
             </tr>
           </thead>
@@ -590,7 +618,8 @@ const SOURCES = [
   { label: 'Bimestre 1', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTP8ak2bDBc501ARPlYnVRDvXe-g6ivAbaj1lg4-li0FdalqBEmKQn86UHfuCMPduqirCqjPoCA2jZ_/pub?output=csv' },
   { label: 'Bimestre 2', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTFI0K2Aa5hVpghUqttAaseqpI20aLWjPdMHwFEFMw-YPBU8gflJLvQeM6_kSkhU-WMV65NKQTOiCRQ/pub?output=csv' },
   { label: 'Mayo',       url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQmV51KQMWke87RVRWB78OSSNTTBChhrfwDWX6sokyfb6NmwAkjQI2ud_QMpbHXR3lQhK41AO6qrZtW/pub?output=csv' },
-  { label: 'Junio',      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIFvBvZR-_qKXRXdSxQ_2TctzxSV9c8ckHiydZx79e5WYa48nzGGh7_7_VzpiMXY4QvCzdce3zd0kP/pub?output=csv' }
+  { label: 'Junio',      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIFvBvZR-_qKXRXdSxQ_2TctzxSV9c8ckHiydZx79e5WYa48nzGGh7_7_VzpiMXY4QvCzdce3zd0kP/pub?output=csv' },
+  { label: 'Julio',      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLRW-4VXxENnXto6Qm4NG2NLDo5uQxdrEVhWBkACJ1yRX9g4-g4zZ6XXXdJHaRpuEWxsFptyMF5xGS/pub?output=csv' }
 ];
 /* =====================================================
    MAPEADOR FLEXIBLE DE COLUMNAS
@@ -607,11 +636,12 @@ const COL_MAP = {
   fecha:         ['fecha', 'date', 'fechallamada', 'fechagestion', 'fecha_llamada'],
   hora:          ['hora', 'hora_inicio', 'horainicio', 'hour', 'time', 'horallamada'],
   resultado:     ['resultado', 'result', 'estado', 'status', 'disposicion', 'tipificacion'],
-  campana:       ['campana', 'campaign', 'nombre_campana', 'nombrecampana', 'campaña'],
+  campana:       ['campaña', 'campana', 'campaign', 'nombre_campana', 'nombrecampana'],
   agente:        ['agente', 'agent', 'asesor', 'usuario', 'user', 'ejecutivo'],
   tiempoHablado: ['tiempohablado', 'tiempo_hablado', 'duracion', 'duration', 'talktime', 'talk_time', 'hablado', 'tiempo', 'tiempo hablado'], // <-- Agrega 'tiempo hablado'
   tiempoTipif:   ['tiempotipificacion', 'tiempodetipificacion', 'tiempo_tipificacion', 'acw', 'wrap', 'tipificacion'],
-  ob: ['ob', 'aplica', 'observacion', 'observaciones', 'tipificacion', 'flag']
+  ob: ['ob', 'aplica', 'observacion', 'observaciones', 'tipificacion', 'flag'],
+  telefono: ['telefono', 'numero', 'celular', 'phone', 'destino', 'marcado', 'movil', 'identificacion', 'marcar']
 };
 function buildColIndex(headers) {
   const normHeaders = headers.map(h => ({ orig: h, norm: normalize(h) }));
@@ -619,19 +649,35 @@ function buildColIndex(headers) {
   
   for (const [canon, variants] of Object.entries(COL_MAP)) {
     let found = null;
+    
     for (const v of variants) {
-      found = normHeaders.find(h => h.norm === v);
+      found = normHeaders.find(h => h.orig.toLowerCase() === v.toLowerCase());
       if (found) break;
-    }
-    if (!found) {
-      for (const v of variants) {
-        found = normHeaders.find(h => h.norm.includes(v));
+      
+      const normV = normalize(v);
+      if (normV) {
+        found = normHeaders.find(h => h.norm === normV);
         if (found) break;
       }
     }
+    
+    if (!found) {
+      for (const v of variants) {
+        const normV = normalize(v);
+        if (normV) {
+          found = normHeaders.find(h => h.norm.includes(normV));
+          if (found) break;
+        }
+      }
+    }
+    
     if (found) { 
       index[canon] = found.orig; 
     }
+  }
+  
+  if (!index.telefono && headers.length >= 9) {
+    index.telefono = headers[8];
   }
   return index;
 }
@@ -755,16 +801,19 @@ function normalizeResultado(r) {
    FETCH + PARSE CSV
 ===================================================== */
 function fetchCSV(url) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
-      const text = await resp.text();
-      Papa.parse(text, {
-        header: true, skipEmptyLines: true, dynamicTyping: false,
-        complete: res => resolve(res), error: err => reject(err)
-      });
-    } catch(err) { reject(err); }
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+      worker: true,
+      complete: res => resolve(res),
+      error: err => {
+        console.error("Error cargando " + url, err);
+        reject(err);
+      }
+    });
   });
 }
 function mapRow(row, colIdx, source) {
@@ -790,6 +839,7 @@ function mapRow(row, colIdx, source) {
   }
   const tTipif   = parseTime(get('tiempoTipif'));
   const ob       = String(get('ob')).trim().toUpperCase();
+  const telefono = String(get('telefono')).trim() || 'Desconocido';
   return {
     _source: source,
     fecha: dateObj, hora: hora, diaSemana: dateObj ? dateObj.getDay() : -1,
@@ -799,8 +849,9 @@ function mapRow(row, colIdx, source) {
     tiempoHablado: tHablado, 
     tiempoTipif: tTipif, 
     ob: ob,
+    telefono: telefono,
     esContestada: esContestada,
-    esBuzon: esContestada && tHablado < 60,
+    esBuzon: esContestada && tHablado < 10,
     obAplica: ob === 'APLICA'
   };
 }
@@ -828,15 +879,23 @@ async function loadAllData() {
       const headers = res.meta.fields || [];
       const colIdx  = buildColIndex(headers);
       const rows    = res.data;
-      const BATCH   = 5000;
+      const BATCH   = 20000;
       const progEl  = document.getElementById('loader-progress');
       for (let start = 0; start < rows.length; start += BATCH) {
-        const chunk = rows.slice(start, start + BATCH);
-        chunk.forEach(row => {
-          try { allRows.push(mapRow(row, colIdx, src.label)); } catch(e) {}
-        });
+        const end = Math.min(start + BATCH, rows.length);
+        for (let j = start; j < end; j++) {
+          try { 
+            const mapped = mapRow(rows[j], colIdx, src.label);
+            if (mapped) {
+              const agenteUpper = mapped.agente.toUpperCase();
+              if (agenteUpper !== 'YAKELINE FIGUEROA LADINO' && agenteUpper !== 'PRUEBA DYALOGO') {
+                allRows.push(mapped);
+              }
+            }
+          } catch(e) {}
+        }
         if (progEl) {
-          const pct = Math.min(100, Math.round((start + BATCH) / rows.length * 100));
+          const pct = Math.min(100, Math.round(end / rows.length * 100));
           progEl.textContent = `Procesando ${src.label}… ${pct}% (${allRows.length.toLocaleString('es')} filas)`;
         }
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -875,7 +934,8 @@ function generateDemoData() {
       resultado: res, resultadoRaw: res, campana: campanas[Math.floor(Math.random()*campanas.length)],
       agente: agentes[Math.floor(Math.random()*agentes.length)],
       tiempoHablado: tH, tiempoTipif: Math.random()<.5?Math.floor(Math.random()*60):0,
-      ob: Math.random()<.6?'APLICA':'NO APLICA', esContestada: res==='Contestada', esBuzon: res==='Contestada' && tH < 60, obAplica: Math.random()<.6
+      ob: Math.random()<.6?'APLICA':'NO APLICA', esContestada: res==='Contestada', esBuzon: res==='Contestada' && tH < 10, obAplica: Math.random()<.6,
+      telefono: '300' + Math.floor(Math.random()*500).toString().padStart(7, '0')
     });
   }
   showError('⚙️ Datos de demostración activos (los CSV no respondieron).');
@@ -983,6 +1043,15 @@ function calcKPIs(data) {
   
   const tHablado = data.reduce((a, r) => a + (Number(r.tiempoHablado) || 0), 0);
   
+  let tHabladoRealSum = 0;
+  let tHabladoRealCount = 0;
+  contestadas.forEach(r => {
+    if (r.tiempoHablado >= 60) {
+      tHabladoRealSum += r.tiempoHablado;
+      tHabladoRealCount++;
+    }
+  });
+  
   // Filtramos registros válidos para el tiempo de tipificación
   const registrosAplica = data.filter(r => r.obAplica === true);
   
@@ -993,13 +1062,44 @@ function calcKPIs(data) {
   // Si no hay registros que apliquen, el promedio es 0
   const promedioTipif = registrosAplica.length > 0 ? (tTipifSum / registrosAplica.length) : 0;
   
+  const phones = {};
+  let totalCallsToKnownPhones = 0;
+  data.forEach(r => {
+    if (r.telefono === 'Desconocido') return;
+    if (!phones[r.telefono]) {
+      phones[r.telefono] = { calls: 0, firstAnswerIndex: -1, answered: false };
+    }
+    phones[r.telefono].calls++;
+    if (r.esContestada && !phones[r.telefono].answered) {
+      phones[r.telefono].answered = true;
+      phones[r.telefono].firstAnswerIndex = phones[r.telefono].calls;
+    }
+  });
+
+  let totalUniquePhones = 0;
+  let totalAnsweredPhones = 0;
+  let sumDialsToAnswer = 0;
+  
+  for (const p in phones) {
+    totalUniquePhones++;
+    totalCallsToKnownPhones += phones[p].calls;
+    if (phones[p].answered) {
+      totalAnsweredPhones++;
+      sumDialsToAnswer += phones[p].firstAnswerIndex;
+    }
+  }
+  
+  const promMarcaciones = totalUniquePhones > 0 ? (totalCallsToKnownPhones / totalUniquePhones) : 0;
+  const promParaContestar = totalAnsweredPhones > 0 ? (sumDialsToAnswer / totalAnsweredPhones) : 0;
+
   const buzon = contestadas.filter(r => r.esBuzon).length;
-  const pctContact = total > 0 ? (nContest / total * 100) : 0;
+  const pctContactReal = total > 0 ? (nContest / total * 100) : 0;
+  const pctContact = total > 0 ? ((nContest - buzon) / total * 100) : 0;
   const pctBuzon = nContest > 0 ? (buzon / nContest * 100) : 0;
   console.log("Registros filtrados (OB=APLICA):", registrosAplica.length);
   console.log("Promedio calculado:", promedioTipif);
   
-  return { total, nContest, tHablado, tTipif: promedioTipif, buzon, pctContact, pctBuzon };
+  return { total, nContest, tHablado, tHabladoRealSum, tHabladoRealCount, tTipif: promedioTipif, buzon, pctContact, pctContactReal, pctBuzon, promMarcaciones, promParaContestar, totalUniquePhones };
 }
 function calcDistResultados(data) {
   const dist = {};
@@ -1029,7 +1129,7 @@ function calcContactByHora(data) {
     if (h < 0) return;
     if (!byHora[h]) byHora[h] = { total: 0, cont: 0 };
     byHora[h].total++;
-    if (r.esContestada) byHora[h].cont++;
+    if (r.esContestada && !r.esBuzon) byHora[h].cont++;
   });
   const horas = Object.keys(byHora).map(Number).sort((a,b)=>a-b);
   return {
@@ -1051,16 +1151,18 @@ function calcAgentTable(data) {
         agente: a, total: 0, contestadas: 0, 
         tHabladoSum: 0, tHabladoCount: 0, 
         tTipifSum: 0, tTipifCount: 0, 
-        buzon: 0 
+        buzon: 0,
+        phones: new Set()
       };
     }
     agents[a].total++;
+    if (r.telefono && r.telefono !== 'Desconocido') agents[a].phones.add(r.telefono);
     // 1. Lógica Contestadas (Aseguramos que esContestada sea booleano)
     if (r.esContestada) {
       agents[a].contestadas++;
       
-      // TMO: Solo llamadas > 60s
-      if (r.tiempoHablado > 0) {
+      // TMO: Solo llamadas >= 60s
+      if (r.tiempoHablado >= 60) {
         agents[a].tHabladoSum += r.tiempoHablado;
         agents[a].tHabladoCount++;
       }
@@ -1075,7 +1177,9 @@ function calcAgentTable(data) {
   return Object.values(agents).map(a => ({
     ...a,
     // Calculamos los promedios y porcentajes
-    contactabilidad: a.total > 0 ? (a.contestadas / a.total * 100) : 0,
+    vueltas: a.phones.size > 0 ? (a.total / a.phones.size) : 0,
+    contactabilidadReal: a.total > 0 ? (a.contestadas / a.total * 100) : 0,
+    contactabilidad: a.total > 0 ? ((a.contestadas - a.buzon) / a.total * 100) : 0,
     tmo: a.tHabladoCount > 0 ? Math.round(a.tHabladoSum / a.tHabladoCount) : 0,
     promTipif: a.tTipifCount > 0 ? Math.round(a.tTipifSum / a.tTipifCount) : 0,
     pctBuzon: a.contestadas > 0 ? (a.buzon / a.contestadas * 100) : 0
@@ -1093,13 +1197,16 @@ function calcGroupTable(data, field) {
         label: g, total: 0, contestadas: 0,
         tHabladoSum: 0, tHabladoCount: 0,
         tTipifSum: 0, tTipifCount: 0,
-        buzon: 0
+        buzon: 0,
+        phones: new Set()
       };
     }
     groups[g].total++;
+    if (r.telefono && r.telefono !== 'Desconocido') groups[g].phones.add(r.telefono);
     if (r.esContestada) {
       groups[g].contestadas++;
-      if (r.tiempoHablado > 0) {
+      // TMO: Solo llamadas >= 60s
+      if (r.tiempoHablado >= 60) {
         groups[g].tHabladoSum += r.tiempoHablado;
         groups[g].tHabladoCount++;
       }
@@ -1112,7 +1219,9 @@ function calcGroupTable(data, field) {
   });
   return Object.values(groups).map(g => ({
     ...g,
-    contactabilidad: g.total > 0 ? (g.contestadas / g.total * 100) : 0,
+    vueltas: g.phones.size > 0 ? (g.total / g.phones.size) : 0,
+    contactabilidadReal: g.total > 0 ? (g.contestadas / g.total * 100) : 0,
+    contactabilidad: g.total > 0 ? ((g.contestadas - g.buzon) / g.total * 100) : 0,
     tmo: g.tHabladoCount > 0 ? Math.round(g.tHabladoSum / g.tHabladoCount) : 0,
     promTipif: g.tTipifCount > 0 ? Math.round(g.tTipifSum / g.tTipifCount) : 0,
     pctBuzon: g.contestadas > 0 ? (g.buzon / g.contestadas * 100) : 0
@@ -1134,13 +1243,15 @@ function renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="no-data">Sin datos</td></tr>';
   } else {
     tbody.innerHTML = slice.map(a => `
       <tr>
         <td style="font-weight:600">${escHTML(a.label)}</td>
         <td>${a.total.toLocaleString('es')}</td>
+        <td><span style="font-weight:600; color:var(--text-main)">${a.vueltas.toFixed(1)}</span></td>
         <td>${a.contestadas.toLocaleString('es')}</td>
+        <td><span class="badge-result ${a.contactabilidadReal >= 40 ? 'badge-green' : 'badge-red'}">${a.contactabilidadReal.toFixed(1)}%</span></td>
         <td><span class="badge-result ${a.contactabilidad >= 40 ? 'badge-green' : 'badge-red'}">${a.contactabilidad.toFixed(1)}%</span></td>
         <td>${secsToHHMM(a.tmo)}</td>
         <td><span class="badge-result ${a.pctBuzon > 20 ? 'badge-red' : 'badge-green'}">${a.pctBuzon.toFixed(1)}%</span></td>
@@ -1184,21 +1295,36 @@ function updateDashboard() {
   document.getElementById('kpi-total').textContent = kpis.total.toLocaleString('es');
   document.getElementById('kpi-total-sub').textContent = `${STATE.rawData.length.toLocaleString('es')} registros totales`;
   // --- NUEVA LÓGICA PARA EL KPI DE TIEMPO (TMO) ---
-  const nContestadas = kpis.nContest;
-  const tmo = nContestadas > 0 ? (kpis.tHablado / nContestadas) : 0;
+  const tmo = kpis.tHabladoRealCount > 0 ? (kpis.tHabladoRealSum / kpis.tHabladoRealCount) : 0;
   document.getElementById('kpi-tiempo').textContent = secsToHHMM(tmo);
-  document.getElementById('kpi-tiempo-sub').textContent = `TMO | ${Math.round(kpis.tHablado/60).toLocaleString('es')} min. totales`;
+  document.getElementById('kpi-tiempo-sub').textContent = `${Math.round(kpis.tHablado/60).toLocaleString('es')} min. hablados en total`;
   // --- RESTO DEL DASHBOARD ---
+  const contRealEl = document.getElementById('kpi-contact-real');
+  if (contRealEl) {
+    contRealEl.textContent = (kpis.pctContactReal || 0).toFixed(1) + '%';
+    document.getElementById('kpi-contact-real-sub').textContent = `${kpis.nContest.toLocaleString('es')} de ${kpis.total.toLocaleString('es')} llamadas`;
+  }
   const contEl = document.getElementById('kpi-contact');
   contEl.textContent = kpis.pctContact.toFixed(1) + '%';
   contEl.className = 'kpi-value';
-  document.getElementById('kpi-contact-sub').textContent = `${kpis.nContest.toLocaleString('es')} de ${kpis.total.toLocaleString('es')} llamadas`;
+  document.getElementById('kpi-contact-sub').textContent = `${(kpis.nContest - kpis.buzon).toLocaleString('es')} de ${kpis.total.toLocaleString('es')} llamadas (est.)`;
   const buzonEl = document.getElementById('kpi-buzon');
   const buzonCard = document.getElementById('kpi-buzon-card');
   buzonEl.textContent = kpis.pctBuzon.toFixed(1) + '%';
   buzonEl.className = 'kpi-value ' + (kpis.pctBuzon > 20 ? 'alert' : kpis.pctBuzon > 10 ? 'warn' : '');
   buzonCard.className = 'kpi-card ' + (kpis.pctBuzon > 20 ? 'red' : 'amber');
-  buzonEl.textContent = `${kpis.buzon} contestadas < 1 min`;
+  buzonEl.textContent = `${kpis.buzon} contestadas < 10 s`;
+
+  const promMarcEl = document.getElementById('kpi-prom-marcaciones');
+  if (promMarcEl) {
+    promMarcEl.textContent = kpis.promMarcaciones.toFixed(2);
+    document.getElementById('kpi-prom-marcaciones-sub').textContent = `sobre ${kpis.totalUniquePhones.toLocaleString('es')} números únicos`;
+  }
+  const intContEl = document.getElementById('kpi-intentos-contestar');
+  if (intContEl) {
+    intContEl.textContent = kpis.promParaContestar.toFixed(2);
+  }
+
   updateDonutChart(data);
   updateBarChart(data);
   updateHeatmap(data);
@@ -1252,7 +1378,7 @@ function updateHeatmap(data) {
   let maxVal = 0; series.forEach(s => s.data.forEach(d => { if (d.y > maxVal) maxVal = d.y; }));
   const T = getTheme();
   const opts = {
-    chart: { type: 'heatmap', height: 220, background: 'transparent', foreColor: T.fore, toolbar: { show: false } }, series: series, xaxis: { type: 'category', labels: { style: { colors: T.fore, fontSize: '10px' }, rotate: -45 } }, yaxis: { labels: { style: { colors: T.fore, fontSize: '11px' } } }, dataLabels: { enabled: false },
+    chart: { type: 'heatmap', height: 220, background: 'transparent', foreColor: T.fore, toolbar: { show: false } }, series: series, xaxis: { type: 'category', labels: { style: { colors: T.fore, fontSize: '10px' }, rotate: -45 } }, yaxis: { labels: { style: { colors: T.fore, fontSize: '11px' } } }, dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#ffffff'] }, dropShadow: { enabled: true, top: 1, left: 1, blur: 1, color: '#000', opacity: 0.8 } },
     plotOptions: { heatmap: { radius: 2, enableShades: true, colorScale: { ranges: [ { from: 0, to: 0, color: T.heatmapEmpty, name: '0' }, { from: 1, to: Math.floor(maxVal*.25), color: '#1d4ed8', name: 'Bajo' }, { from: Math.floor(maxVal*.25)+1, to: Math.floor(maxVal*.5), color: '#2563eb', name: 'Medio' }, { from: Math.floor(maxVal*.5)+1, to: Math.floor(maxVal*.75), color: '#22c55e', name: 'Alto' }, { from: Math.floor(maxVal*.75)+1, to: maxVal+1, color: '#16a34a', name: 'Muy Alto' } ] } } },
     legend: { show: true, position: 'top', labels: { colors: T.fore } }, stroke: { width: 2, colors: [T.stroke] }, tooltip: { theme: T.tooltip, y: { title: { formatter: () => 'Llamadas:' }, formatter: v => v.toLocaleString('es') } }
   };
@@ -1277,7 +1403,7 @@ function updateHoraChart(data) {
    GRÁFICOS DE TIEMPO DE TIPIFICACIÓN (PROMEDIOS)
 ===================================================== */
 function updateTipificacionCharts(data) {
-  const byRes = {}; const byCamp = {}; const byAgent = {};
+  const byRes = {}; const byCamp = {}; const byAgent = {}; const byMes = {};
   
   data.forEach(r => {
     // Si la lógica de negocio es: "solo promediar los que tengan tiempo > 0"
@@ -1292,12 +1418,15 @@ function updateTipificacionCharts(data) {
     const res = r.resultado || 'Desconocido';
     const camp = r.campana || 'Sin campaña';
     const ag = r.agente || 'Sin agente';
+    const mes = r.mes || 'Desconocido';
     if (!byRes[res]) byRes[res] = { sum: 0, count: 0 };
     byRes[res].sum += t; byRes[res].count++;
     if (!byCamp[camp]) byCamp[camp] = { sum: 0, count: 0 };
     byCamp[camp].sum += t; byCamp[camp].count++;
     if (!byAgent[ag]) byAgent[ag] = { sum: 0, count: 0 };
     byAgent[ag].sum += t; byAgent[ag].count++;
+    if (!byMes[mes]) byMes[mes] = { sum: 0, count: 0 };
+    byMes[mes].sum += t; byMes[mes].count++;
   });
   const getAvg = (val) => val.count === 0 ? 0 : Math.round(val.sum / val.count);
   const prep = (dict, limit = 10) => Object.entries(dict)
@@ -1307,6 +1436,7 @@ function updateTipificacionCharts(data) {
   const dRes = prep(byRes, 10);
   const dCamp = prep(byCamp, 10);
   const dAgent = prep(byAgent, 10);
+  const dMes = prep(byMes, 12);
   const renderChart = (id, title, dataArr, color) => {
     const T = getTheme();
     const opts = {
@@ -1329,6 +1459,55 @@ function updateTipificacionCharts(data) {
   renderChart('chart-tipif-res', 'Por Resultado', dRes, '#a855f7');
   renderChart('chart-tipif-camp', 'Por Campaña', dCamp, '#3b82f6');
   renderChart('chart-tipif-agent', 'Por Asesor (Top 10)', dAgent, '#f59e0b');
+  renderChart('chart-tipif-mes', 'Por Mes', dMes, '#10b981');
+
+  // RENDER PIVOT TABLE
+  const pivot = {};
+  const monthsSet = new Set();
+  data.forEach(r => {
+    if (r.ob !== 'APLICA') return;
+    const camp = r.campana || 'Sin campaña';
+    const mes = r.mes || 'Desconocido';
+    const t = r.tiempoTipif || 0;
+    if (!pivot[camp]) pivot[camp] = {};
+    if (!pivot[camp][mes]) pivot[camp][mes] = { sum: 0, count: 0 };
+    pivot[camp][mes].sum += t;
+    pivot[camp][mes].count++;
+    monthsSet.add(mes);
+  });
+  
+  const monthOrder = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const months = Array.from(monthsSet).sort((a, b) => {
+    let idxA = monthOrder.indexOf(a);
+    let idxB = monthOrder.indexOf(b);
+    if(idxA === -1) idxA = 99;
+    if(idxB === -1) idxB = 99;
+    return idxA - idxB;
+  });
+  
+  let html = `<div class="chart-subtitle" style="margin-bottom:0.5rem; margin-top:1rem; font-weight:600; color:var(--text-main);">Cruce de Promedio de Tipificación: Campaña vs. Mes</div>`;
+  html += `<div class="table-wrap"><table><thead><tr><th>Campaña</th>`;
+  months.forEach(m => { html += `<th>${m}</th>`; });
+  html += `</tr></thead><tbody>`;
+  
+  const camps = Object.keys(pivot).sort();
+  if(camps.length === 0) {
+    html += `<tr><td colspan="${months.length + 1}" class="no-data">Sin datos</td></tr>`;
+  } else {
+    camps.forEach(camp => {
+      html += `<tr><td style="font-weight:600;">${escHTML(camp)}</td>`;
+      months.forEach(m => {
+        const cell = pivot[camp][m];
+        const avg = cell && cell.count > 0 ? Math.round(cell.sum / cell.count) : 0;
+        const text = avg > 0 ? secsToHHMM(avg) : '-';
+        html += `<td>${text}</td>`;
+      });
+      html += `</tr>`;
+    });
+  }
+  html += `</tbody></table></div>`;
+  const pivotEl = document.getElementById('tipif-pivot-table');
+  if(pivotEl) pivotEl.innerHTML = html;
 }
 /* =====================================================
    TABLA DE AGENTES RENDER
@@ -1348,7 +1527,7 @@ function updateAgentTable(data) {
   const slice = rows.slice((p-1)*ps, p*ps);
   const tbody = document.getElementById('agent-tbody');
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Sin datos de agentes</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="no-data">Sin datos de agentes</td></tr>';
   } else {
     tbody.innerHTML = slice.map(a => {
       const cClass = a.contactabilidad >= 40 ? 'badge-green' : a.contactabilidad >= 20 ? 'badge-amber' : 'badge-red';
@@ -1360,7 +1539,9 @@ return `
   <tr>
     <td style="font-weight:600">${escHTML(a.agente)}</td>
     <td>${a.total.toLocaleString('es')}</td>
+    <td><span style="font-weight:600; color:var(--text-main)">${a.vueltas.toFixed(1)}</span></td>
     <td>${a.contestadas.toLocaleString('es')}</td>
+    <td><span class="badge-result ${a.contactabilidadReal >= 40 ? 'badge-green' : 'badge-red'}">${a.contactabilidadReal.toFixed(1)}%</span></td>
     <td><span class="badge-result ${a.contactabilidad >= 40 ? 'badge-green' : 'badge-red'}">${a.contactabilidad.toFixed(1)}%</span></td>
     <td>${secsToHHMM(a.tmo)}</td>
     <td><span class="badge-result ${a.pctBuzon > 20 ? 'badge-red' : 'badge-green'}">${a.pctBuzon.toFixed(1)}%</span></td>
