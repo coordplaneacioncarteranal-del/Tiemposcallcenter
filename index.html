@@ -11,8 +11,9 @@
   <!-- ApexCharts -->
   <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
   <style>
+    html { font-size: 12.5px; }
     :root {
-      --sidebar-w: 270px;
+      --sidebar-w: 240px;
       --bg-main: #0f172a;
       --bg-card: #1e293b;
       --bg-card2: #162032;
@@ -203,7 +204,7 @@
       transition: margin-left .3s ease;
     }
     #main.expanded { margin-left: 0; }
-    /* ── TOP BAR ── */
+    /* ── TOP BAR & TABS ── */
     #topbar {
       height: 60px;
       background: #111827;
@@ -213,6 +214,18 @@
       gap: 1rem;
       position: sticky; top: 0; z-index: 40;
     }
+    #tabs-container {
+      display: flex; gap: .5rem; margin-left: 1rem;
+    }
+    .tab-btn {
+      background: transparent; border: none; color: var(--text-muted);
+      font-size: .8rem; font-weight: 600; padding: .5rem 1rem;
+      border-radius: 6px; cursor: pointer; transition: all .2s;
+    }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .tab-btn.active { background: rgba(59,130,246,.15); color: var(--accent-blue); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
     #toggle-sidebar {
       background: none; border: none; color: var(--text-muted);
       font-size: 1.3rem; cursor: pointer; padding: .25rem;
@@ -329,7 +342,7 @@
       transition: background .15s;
     }
     tbody tr:hover { background: rgba(59,130,246,.05); }
-    td { padding: .65rem 1rem; color: var(--text-main); white-space: nowrap; }
+    td { padding: .4rem .75rem; color: var(--text-main); white-space: nowrap; }
     td.muted { color: var(--text-muted); }
     .badge-result {
       display: inline-block; padding: .2rem .5rem;
@@ -409,6 +422,8 @@
       <div class="loader-src" id="src-2"><div class="dot"></div> Mayo</div>
       <div class="loader-src" id="src-3"><div class="dot"></div> Junio</div>
       <div class="loader-src" id="src-4"><div class="dot"></div> Julio</div>
+      <div class="loader-src" id="src-conn"><div class="dot"></div> Conexión Global</div>
+      <div class="loader-src" id="src-pausas"><div class="dot"></div> Pausas Agente</div>
     </div>
   </div>
 </div>
@@ -463,20 +478,36 @@
         <div class="checklist-items" id="f-agente"></div>
       </div>
     </div>
-    <label class="filter-label">🕐 Hora Inicio</label>
-    <div class="range-row" style="margin-bottom:.75rem">
-      <input type="number" id="f-hora-min" class="filter-input" min="0" max="23" placeholder="0" style="margin:0" />
-      <input type="number" id="f-hora-max" class="filter-input" min="0" max="23" placeholder="23" style="margin:0" />
+    <div id="filters-analytics-only">
+      <label class="filter-label">🕐 Hora Inicio</label>
+      <div class="range-row" style="margin-bottom:.75rem">
+        <input type="number" id="f-hora-min" class="filter-input" min="0" max="23" placeholder="0" style="margin:0" />
+        <input type="number" id="f-hora-max" class="filter-input" min="0" max="23" placeholder="23" style="margin:0" />
+      </div>
+      <label class="filter-label">📊 Resultado</label>
+      <div class="dropdown-container">
+        <button class="dropdown-header" onclick="toggleDropdown('f-resultado-dropdown')">
+          <span class="dropdown-header-text" id="f-resultado-text">Todos los resultados</span>
+          <span style="font-size: 0.6rem;">▼</span>
+        </button>
+        <div class="filter-checklist" id="f-resultado-dropdown">
+          <input type="text" class="filter-search" placeholder="Buscar..." onkeyup="filterChecklist('f-resultado', this.value)" />
+          <div class="checklist-items" id="f-resultado"></div>
+        </div>
+      </div>
     </div>
-    <label class="filter-label">📊 Resultado</label>
-    <div class="dropdown-container">
-      <button class="dropdown-header" onclick="toggleDropdown('f-resultado-dropdown')">
-        <span class="dropdown-header-text" id="f-resultado-text">Todos los resultados</span>
-        <span style="font-size: 0.6rem;">▼</span>
-      </button>
-      <div class="filter-checklist" id="f-resultado-dropdown">
-        <input type="text" class="filter-search" placeholder="Buscar..." onkeyup="filterChecklist('f-resultado', this.value)" />
-        <div class="checklist-items" id="f-resultado"></div>
+    
+    <div id="filters-conn-only" style="display:none">
+      <label class="filter-label">⏸️ Pausas</label>
+      <div class="dropdown-container">
+        <button class="dropdown-header" onclick="toggleDropdown('f-pausas-dropdown')">
+          <span class="dropdown-header-text" id="f-pausas-text">Todas las pausas</span>
+          <span style="font-size: 0.6rem;">▼</span>
+        </button>
+        <div class="filter-checklist" id="f-pausas-dropdown">
+          <input type="text" class="filter-search" placeholder="Buscar..." onkeyup="filterChecklist('f-pausas', this.value)" />
+          <div class="checklist-items" id="f-pausas"></div>
+        </div>
       </div>
     </div>
     <button class="btn-reset" onclick="resetFilters()">↺ Limpiar Filtros</button>
@@ -500,24 +531,30 @@
   <div id="topbar">
     <button id="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
     <h1>📊 Dashboard Outbound — Dyalogo</h1>
+    <div id="tabs-container">
+      <button class="tab-btn active" onclick="switchTab('analytics')" id="btn-tab-analytics">Analítica de Llamadas</button>
+      <button class="tab-btn" onclick="switchTab('connection')" id="btn-tab-connection">Conexión y Pausas</button>
+    </div>
     <span class="badge">LIVE DATA</span>
     <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     <span id="last-update" style="margin-left:auto">—</span>
   </div>
   <!-- Error Banner -->
   <div id="error-banner"></div>
-  <!-- Content -->
-  <div id="content">
-    <!-- KPI ROW -->
-    <div class="kpi-grid">
-      <div class="kpi-card blue">
-        <div class="kpi-label">📞 Llamadas Totales</div>
-        <div class="kpi-value" id="kpi-total">—</div>
-        <div class="kpi-sub" id="kpi-total-sub">registros consolidados</div>
-        <div class="kpi-icon">📞</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">⏱ TMO Real (Excl. &lt; 1 min)</div>
+
+  <!-- CONTENT TABS -->
+  <div id="tab-analytics" class="tab-content active">
+    <div id="content">
+      <!-- KPI ROW -->
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-label">📞 Llamadas Totales</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-sub" id="kpi-total-sub">registros consolidados</div>
+          <div class="kpi-icon">📞</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">⏱ TMO Real (Excl. &lt; 1 min)</div>
         <div class="kpi-value" id="kpi-tiempo">—</div>
         <div class="kpi-sub" id="kpi-tiempo-sub">minutos totales</div>
         <div class="kpi-icon">⏱</div>
@@ -680,14 +717,71 @@
       </div>
     </div>
   </div><!-- /content -->
+  </div><!-- /tab-analytics -->
+
+  <div id="tab-connection" class="tab-content">
+    <div id="connection-content" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
+      <div class="chart-card">
+        <div class="chart-title">⏱️ Resumen de Conexión y Pausas por Agente</div>
+        <div class="table-wrap">
+          <table id="conn-summary-table">
+            <thead>
+              <tr>
+                <th>Campaña / Agente</th>
+                <th>Conexión Total</th>
+                <th>Total Pausas</th>
+                <th>Conexión Real</th>
+                <th>Desconexión</th>
+              </tr>
+            </thead>
+            <tbody id="conn-summary-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-title" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>📅 Conexión por Día (Pivot)</span>
+          <select id="conn-pivot-metric" class="filter-select" style="width: auto; min-width: 150px; padding: 0.2rem 0.5rem;" onchange="updateConnectionDashboard()">
+            <option value="real">Ver Conexión Real</option>
+            <option value="conn">Ver Conexión Total</option>
+            <option value="pausas">Ver Total Pausas</option>
+          </select>
+        </div>
+        <div class="chart-subtitle" id="conn-pivot-subtitle">Métrica: Conexión Real</div>
+        <div class="table-wrap" id="conn-pivot-table">
+          <!-- Pivot HTML here -->
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-connection -->
+
 </div><!-- /main -->
 <script>
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  document.getElementById('btn-tab-' + tabId).classList.add('active');
+  
+  if (tabId === 'analytics') {
+    document.getElementById('filters-analytics-only').style.display = 'block';
+    document.getElementById('filters-conn-only').style.display = 'none';
+  } else {
+    document.getElementById('filters-analytics-only').style.display = 'none';
+    document.getElementById('filters-conn-only').style.display = 'block';
+  }
+}
 /* =====================================================
    ESTADO GLOBAL
 ===================================================== */
 const STATE = {
   rawData: [],
   filtered: [],
+  connData: [],
+  pausasData: [],
+  filteredConnData: [],
+  filteredPausasData: [],
   filters: { mes: [], campana: [], agente: [], horaMin: 0, horaMax: 23, resultado: [], fechaMin: null, fechaMax: null },
   tableSort: { col: 'total', dir: 'desc' },
   tablePage: 1,
@@ -727,6 +821,9 @@ const SOURCES = [
   { label: 'Junio',      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIFvBvZR-_qKXRXdSxQ_2TctzxSV9c8ckHiydZx79e5WYa48nzGGh7_7_VzpiMXY4QvCzdce3zd0kP/pub?output=csv' },
   { label: 'Julio',      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLRW-4VXxENnXto6Qm4NG2NLDo5uQxdrEVhWBkACJ1yRX9g4-g4zZ6XXXdJHaRpuEWxsFptyMF5xGS/pub?output=csv' }
 ];
+const SRC_CONN = { label: 'Conexión Global', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSyXhcFXWElVFLtZ27iug4lK38P-fce9ro9ic0xaEyLqRg2TZzXeLsaQ42Uy7QLr4liH9wtuuZbJYL/pub?output=csv' };
+const SRC_PAUSAS = { label: 'Pausas Agente', url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSKOFu57j7JyNvPIhGo5tyeus54EB5ce0ye2H83Z2YRv_beFaHn0k7WJTQfMf9IMwqGUlhGDebQtH2N/pub?output=csv' };
+
 /* =====================================================
    MAPEADOR FLEXIBLE DE COLUMNAS
 ===================================================== */
@@ -965,54 +1062,129 @@ function mapRow(row, colIdx, source) {
    CARGA PRINCIPAL
 ===================================================== */
 async function loadAllData() {
-  const results = await Promise.allSettled(
-    SOURCES.map((src, i) =>
-      fetchCSV(src.url).then(res => {
-        markLoader(i, 'ok');
-        return { src, res };
-      }).catch(err => {
-        markLoader(i, 'err');
-        throw err;
-      })
-    )
+  const sourcesPromises = SOURCES.map((src, i) =>
+    fetchCSV(src.url).then(res => {
+      markLoader(i, 'ok');
+      return { src, res, type: 'analytics' };
+    }).catch(err => {
+      markLoader(i, 'err');
+      throw err;
+    })
   );
+  const connPromise = fetchCSV(SRC_CONN.url).then(res => {
+    markLoader('conn', 'ok');
+    return { src: SRC_CONN, res, type: 'conn' };
+  }).catch(err => {
+    markLoader('conn', 'err');
+    throw err;
+  });
+  const pausasPromise = fetchCSV(SRC_PAUSAS.url).then(res => {
+    markLoader('pausas', 'ok');
+    return { src: SRC_PAUSAS, res, type: 'pausas' };
+  }).catch(err => {
+    markLoader('pausas', 'err');
+    throw err;
+  });
+
+  const results = await Promise.allSettled([...sourcesPromises, connPromise, pausasPromise]);
   const errors = [];
   const allRows = [];
+  const connRows = [];
+  const pausasRows = [];
+
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     if (r.status === 'fulfilled') {
-      const { src, res } = r.value;
+      const { src, res, type } = r.value;
       const headers = res.meta.fields || [];
-      const colIdx  = buildColIndex(headers);
-      const rows    = res.data;
-      const BATCH   = 20000;
-      const progEl  = document.getElementById('loader-progress');
-      for (let start = 0; start < rows.length; start += BATCH) {
-        const end = Math.min(start + BATCH, rows.length);
-        for (let j = start; j < end; j++) {
-          try { 
-            const mapped = mapRow(rows[j], colIdx, src.label);
-            if (mapped) {
-              const agenteUpper = mapped.agente.toUpperCase();
-              if (agenteUpper !== 'YAKELINE FIGUEROA LADINO' && agenteUpper !== 'PRUEBA DYALOGO') {
-                allRows.push(mapped);
+      const rows = res.data;
+      
+      if (type === 'analytics') {
+        const colIdx = buildColIndex(headers);
+        const BATCH = 20000;
+        const progEl = document.getElementById('loader-progress');
+        for (let start = 0; start < rows.length; start += BATCH) {
+          const end = Math.min(start + BATCH, rows.length);
+          for (let j = start; j < end; j++) {
+            try { 
+              const mapped = mapRow(rows[j], colIdx, src.label);
+              if (mapped) {
+                const agenteUpper = mapped.agente.toUpperCase();
+                if (agenteUpper !== 'YAKELINE FIGUEROA LADINO' && agenteUpper !== 'PRUEBA DYALOGO') {
+                  allRows.push(mapped);
+                }
               }
-            }
-          } catch(e) {}
+            } catch(e) {}
+          }
+          if (progEl) {
+            const pct = Math.min(100, Math.round(end / rows.length * 100));
+            progEl.textContent = `Procesando ${src.label}… ${pct}% (${allRows.length.toLocaleString('es')} filas)`;
+          }
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
-        if (progEl) {
-          const pct = Math.min(100, Math.round(end / rows.length * 100));
-          progEl.textContent = `Procesando ${src.label}… ${pct}% (${allRows.length.toLocaleString('es')} filas)`;
+      } else if (type === 'conn') {
+        for (let j = 0; j < rows.length; j++) {
+          const row = rows[j];
+          const rawCampana = row['CAMPAÑA'] || row['CAMPANA'] || '';
+          const rawAgente = row['AGENTE'] || row['NOMBRE_AGENTE'] || row['Agente'] || '';
+          const rawMes = row['MES GESTION'] || row['MES'] || '';
+          const rawFecha = row['Inicio'] || row['INICIO'] || row['DIA MES'] || row['FECHA'] || '';
+          const dObj = parseDate(rawFecha);
+          const mesFinal = dObj ? getMesLabelCached(dObj) : (rawMes ? (String(rawMes).trim().charAt(0).toUpperCase() + String(rawMes).trim().slice(1).toLowerCase()) : 'Desconocido');
+          
+          const isAplica = String(row['OB'] || '').trim().toUpperCase() === 'APLICA';
+          
+          connRows.push({
+             _source: 'Conn',
+             campana: String(rawCampana).trim() || 'Sin campaña',
+             agente: String(rawAgente).trim() || 'Sin agente',
+             mes: mesFinal,
+             fechaRaw: rawFecha,
+             fecha: dObj,
+             minutosSecs: parseTime(row['Duracion_Horas'] || row['MINUTOS']),
+             desconexionSecs: isAplica ? parseTime(row['DESCONEXION'] || row['DESCONEXIÓN']) : 0
+          });
         }
-        await new Promise(resolve => setTimeout(resolve, 0));
+      } else if (type === 'pausas') {
+        for (let j = 0; j < rows.length; j++) {
+          const row = rows[j];
+          const rawCampana = row['CAMPAÑA'] || row['CAMPANA'] || '';
+          const rawAgente = row['AGENTE'] || row['NOMBRE_AGENTE'] || row['Agente'] || '';
+          const rawMes = row['MES GESTION'] || row['MES'] || '';
+          const rawFecha = row['Inicio'] || row['INICIO'] || row['DIA MES'] || row['FECHA'] || '';
+          const dObj = parseDate(rawFecha);
+          const mesFinal = dObj ? getMesLabelCached(dObj) : (rawMes ? (String(rawMes).trim().charAt(0).toUpperCase() + String(rawMes).trim().slice(1).toLowerCase()) : 'Desconocido');
+          
+          pausasRows.push({
+             _source: 'Pausas',
+             campana: String(rawCampana).trim() || 'Sin campaña',
+             agente: String(rawAgente).trim() || 'Sin agente',
+             mes: mesFinal,
+             fechaRaw: rawFecha,
+             fecha: dObj,
+             pausa: String(row['PAUSA']).trim(),
+             minutosSecs: parseTime(row['Duracion_Pausa'] || row['MINUTOS'])
+          });
+        }
       }
-    } else { errors.push(`${SOURCES[i].label}: ${r.reason}`); }
+    } else { 
+      let label = 'Desconocido';
+      if (i < SOURCES.length) label = SOURCES[i].label;
+      else if (i === SOURCES.length) label = SRC_CONN.label;
+      else label = SRC_PAUSAS.label;
+      errors.push(`${label}: ${r.reason}`); 
+    }
   }
+
   if (errors.length > 0 && allRows.length === 0) {
     showError('No se pudo cargar ninguna fuente de datos. Errores: ' + errors.join(' | '));
   } else if (errors.length > 0) {
     showError(`⚠️ ${errors.length} fuente(s) fallaron. Mostrando datos parciales. | ${errors.join(' | ')}`);
   }
+  
+  STATE.connData = connRows;
+  STATE.pausasData = pausasRows;
+  
   if (allRows.length === 0) return generateDemoData();
   return allRows;
 }
@@ -1126,7 +1298,7 @@ function triggerFilterChange(id) {
   const checked = Array.from(el.querySelectorAll('input[type="checkbox"]:not([value="ALL"]):checked')).map(cb => cb.value);
   const allItemCbs = Array.from(el.querySelectorAll('input[type="checkbox"]:not([value="ALL"])'));
   
-  const keyMap = { 'f-mes': 'mes', 'f-campana': 'campana', 'f-agente': 'agente', 'f-resultado': 'resultado' };
+  const keyMap = { 'f-mes': 'mes', 'f-campana': 'campana', 'f-agente': 'agente', 'f-resultado': 'resultado', 'f-pausas': 'pausas' };
   const key = keyMap[id];
   
   if (checked.length === allItemCbs.length || checked.length === 0) {
@@ -1138,7 +1310,7 @@ function triggerFilterChange(id) {
   const textEl = document.getElementById(id + '-text');
   if (textEl) {
     if (checked.length === allItemCbs.length || checked.length === 0) {
-      const allMap = { 'f-mes': 'Todos los meses', 'f-campana': 'Todas las campañas', 'f-agente': 'Todos los agentes', 'f-resultado': 'Todos los resultados' };
+      const allMap = { 'f-mes': 'Todos los meses', 'f-campana': 'Todas las campañas', 'f-agente': 'Todos los agentes', 'f-resultado': 'Todos los resultados', 'f-pausas': 'Todas las pausas' };
       textEl.textContent = allMap[id] || '(Todos)';
     } else if (checked.length === 1) {
       textEl.textContent = checked[0];
@@ -1152,14 +1324,25 @@ function triggerFilterChange(id) {
 
 function populateFilters() {
   const data = STATE.rawData;
-  const meses    = [...new Set(data.map(r => r.mes).filter(Boolean))].sort();
-  const campanas = [...new Set(data.map(r => r.campana).filter(Boolean))].sort();
-  const agentes  = [...new Set(data.map(r => r.agente).filter(Boolean))].sort();
-  const results  = [...new Set(data.map(r => r.resultado).filter(Boolean))].sort();
+  const allCampanas = new Set();
+  const allAgentes = new Set();
+  const allMeses = new Set();
+  
+  STATE.rawData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); });
+  STATE.connData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); });
+  STATE.pausasData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); });
+
+  const campanas = [...allCampanas].sort();
+  const agentes  = [...allAgentes].sort();
+  const meses    = [...allMeses].sort();
+  const results  = [...new Set(STATE.rawData.map(r => r.resultado).filter(Boolean))].sort();
+  const pausas   = [...new Set(STATE.pausasData.map(r => r.pausa).filter(Boolean))].sort();
+
   buildChecklist('f-mes',      meses);
   buildChecklist('f-campana',  campanas);
   buildChecklist('f-agente',   agentes);
   buildChecklist('f-resultado',results);
+  buildChecklist('f-pausas',   pausas);
   
   document.getElementById('info-total').textContent = data.length.toLocaleString('es');
   document.getElementById('info-camps').textContent = campanas.length;
@@ -1198,20 +1381,40 @@ function applyFilters() {
     if (f.fechaMax && (!r.fecha || r.fecha > f.fechaMax)) return false;
     return true;
   });
+  
+  STATE.filteredConnData = STATE.connData.filter(r => {
+    if (f.mes && f.mes.length > 0 && !f.mes.includes(r.mes)) return false;
+    if (f.campana && f.campana.length > 0 && !f.campana.includes(r.campana)) return false;
+    if (f.agente && f.agente.length > 0 && !f.agente.includes(r.agente)) return false;
+    if (f.fechaMin && (!r.fecha || r.fecha < f.fechaMin)) return false;
+    if (f.fechaMax && (!r.fecha || r.fecha > f.fechaMax)) return false;
+    return true;
+  });
+
+  STATE.filteredPausasData = STATE.pausasData.filter(r => {
+    if (f.mes && f.mes.length > 0 && !f.mes.includes(r.mes)) return false;
+    if (f.campana && f.campana.length > 0 && !f.campana.includes(r.campana)) return false;
+    if (f.agente && f.agente.length > 0 && !f.agente.includes(r.agente)) return false;
+    if (f.pausas && f.pausas.length > 0 && !f.pausas.includes(r.pausa)) return false;
+    if (f.fechaMin && (!r.fecha || r.fecha < f.fechaMin)) return false;
+    if (f.fechaMax && (!r.fecha || r.fecha > f.fechaMax)) return false;
+    return true;
+  });
+
   document.getElementById('info-filtered').textContent = STATE.filtered.length.toLocaleString('es');
   STATE.tablePage = 1;
   updateDashboard();
 }
 function resetFilters() {
-  STATE.filters = { mes:[], campana:[], agente:[], horaMin:0, horaMax:23, resultado:[], fechaMin:null, fechaMax:null };
-  ['f-mes', 'f-campana', 'f-agente', 'f-resultado'].forEach(id => {
+  STATE.filters = { mes:[], campana:[], agente:[], horaMin:0, horaMax:23, resultado:[], pausas:[], fechaMin:null, fechaMax:null };
+  ['f-mes', 'f-campana', 'f-agente', 'f-resultado', 'f-pausas'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       Array.from(el.querySelectorAll('input[type="checkbox"]')).forEach(cb => cb.checked = true);
     }
     const textEl = document.getElementById(id + '-text');
     if (textEl) {
-      const allMap = { 'f-mes': 'Todos los meses', 'f-campana': 'Todas las campañas', 'f-agente': 'Todos los agentes', 'f-resultado': 'Todos los resultados' };
+      const allMap = { 'f-mes': 'Todos los meses', 'f-campana': 'Todas las campañas', 'f-agente': 'Todos los agentes', 'f-resultado': 'Todos los resultados', 'f-pausas': 'Todas las pausas' };
       textEl.textContent = allMap[id] || '(Todos)';
     }
   });
@@ -1533,8 +1736,174 @@ function updateDashboard() {
   updateAgentTable(data);
   renderGroupTable('mes', 'mes', 'mes-tbody', 'mes-pag-info', 'mes-pag-btns');
   renderGroupTable('campana', 'campana', 'campana-tbody', 'campana-pag-info', 'campana-pag-btns');
+  updateConnectionDashboard();
   document.getElementById('last-update').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es');
 }
+
+/* =====================================================
+   CONEXIÓN Y PAUSAS
+===================================================== */
+function updateConnectionDashboard() {
+  const map = {};
+  const datesSet = new Set();
+  
+  // Agregar conexión
+  STATE.filteredConnData.forEach(r => {
+    const k = r.agente + '|' + r.campana;
+    if (!map[k]) map[k] = { agente: r.agente, campana: r.campana, connTotal: 0, pausasTotal: 0, desconexionTotal: 0, byDate: {} };
+    map[k].connTotal += r.minutosSecs || 0;
+    map[k].desconexionTotal += r.desconexionSecs || 0;
+    
+    if (r.fechaRaw) {
+      datesSet.add(r.fechaRaw);
+      if (!map[k].byDate[r.fechaRaw]) map[k].byDate[r.fechaRaw] = { conn: 0, pausas: 0 };
+      map[k].byDate[r.fechaRaw].conn += r.minutosSecs || 0;
+    }
+  });
+
+  // Agregar pausas
+  STATE.filteredPausasData.forEach(r => {
+    const k = r.agente + '|' + r.campana;
+    if (!map[k]) map[k] = { agente: r.agente, campana: r.campana, connTotal: 0, pausasTotal: 0, desconexionTotal: 0, byDate: {} };
+    map[k].pausasTotal += r.minutosSecs || 0;
+    
+    if (r.fechaRaw) {
+      datesSet.add(r.fechaRaw);
+      if (!map[k].byDate[r.fechaRaw]) map[k].byDate[r.fechaRaw] = { conn: 0, pausas: 0 };
+      map[k].byDate[r.fechaRaw].pausas += r.minutosSecs || 0;
+    }
+  });
+
+  const summaryRows = Object.values(map).map(x => {
+    x.connReal = x.connTotal - x.pausasTotal;
+    if (x.connReal < 0) x.connReal = 0;
+    return x;
+  });
+
+  const campMap = {};
+  summaryRows.forEach(a => {
+    if (!campMap[a.campana]) {
+      campMap[a.campana] = { name: a.campana, rows: [], connTotal: 0, pausasTotal: 0, desconexionTotal: 0, connReal: 0, byDate: {} };
+    }
+    campMap[a.campana].rows.push(a);
+    campMap[a.campana].connTotal += a.connTotal || 0;
+    campMap[a.campana].pausasTotal += a.pausasTotal || 0;
+    campMap[a.campana].desconexionTotal += a.desconexionTotal || 0;
+    campMap[a.campana].connReal += a.connReal || 0;
+  });
+
+  // Render Summary Table
+  const tbody = document.getElementById('conn-summary-tbody');
+  if (summaryRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Sin datos</td></tr>';
+  } else {
+    let html = '';
+    Object.values(campMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(camp => {
+      html += `
+        <tr>
+          <td style="font-weight:700; background:var(--bg-card2)">➖ ${escHTML(camp.name)}</td>
+          <td style="font-weight:700; background:var(--bg-card2)">${secsToHHMM(camp.connTotal)}</td>
+          <td style="font-weight:700; background:var(--bg-card2); color:var(--accent-red)">${secsToHHMM(camp.pausasTotal)}</td>
+          <td style="font-weight:700; background:var(--bg-card2)"><span class="badge-result badge-green">${secsToHHMM(camp.connReal)}</span></td>
+          <td style="font-weight:700; background:var(--bg-card2); color:var(--accent-amber)">${secsToHHMM(camp.desconexionTotal)}</td>
+        </tr>
+      `;
+      camp.rows.forEach(a => {
+        html += `
+          <tr>
+            <td style="padding-left: 2rem;">${escHTML(a.agente)}</td>
+            <td>${secsToHHMM(a.connTotal)}</td>
+            <td style="color:var(--accent-red)">${secsToHHMM(a.pausasTotal)}</td>
+            <td><span class="badge-result badge-green">${secsToHHMM(a.connReal)}</span></td>
+            <td style="color:var(--accent-amber)">${secsToHHMM(a.desconexionTotal)}</td>
+          </tr>
+        `;
+      });
+    });
+    tbody.innerHTML = html;
+  }
+
+  // Render Pivot Table
+  const pivotDiv = document.getElementById('conn-pivot-table');
+  if (summaryRows.length === 0) {
+    pivotDiv.innerHTML = '<div class="no-data" style="text-align:center; padding:2rem;">Sin datos</div>';
+    return;
+  }
+  
+  const pivotMetric = document.getElementById('conn-pivot-metric') ? document.getElementById('conn-pivot-metric').value : 'real';
+  const subtitle = document.getElementById('conn-pivot-subtitle');
+  if (subtitle) {
+    if (pivotMetric === 'conn') subtitle.textContent = 'Métrica: Conexión Total';
+    else if (pivotMetric === 'pausas') subtitle.textContent = 'Métrica: Total Pausas';
+    else subtitle.textContent = 'Métrica: Conexión Real';
+  }
+
+  const pivotCampMap = {};
+  summaryRows.forEach(a => {
+    if (!pivotCampMap[a.campana]) {
+      pivotCampMap[a.campana] = { name: a.campana, rows: [], byDate: {} };
+    }
+    pivotCampMap[a.campana].rows.push(a);
+  });
+
+  const dates = Array.from(datesSet).sort();
+
+  // Calcular subtotales por campaña
+  Object.values(pivotCampMap).forEach(camp => {
+    camp.rows.forEach(a => {
+      dates.forEach(d => {
+        if (!camp.byDate[d]) camp.byDate[d] = { conn: 0, pausas: 0 };
+        const cd = a.byDate[d];
+        if (cd) {
+          camp.byDate[d].conn += cd.conn || 0;
+          camp.byDate[d].pausas += cd.pausas || 0;
+        }
+      });
+    });
+  });
+
+  let pivotHtml = '<table class="pivot-table"><thead><tr><th>Etiquetas de fila</th>';
+  dates.forEach(d => { pivotHtml += `<th>${escHTML(d)}</th>`; });
+  pivotHtml += '</tr></thead><tbody>';
+
+  Object.values(pivotCampMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(camp => {
+    pivotHtml += `<tr><td style="font-weight:700; background:var(--bg-card2)">➖ ${escHTML(camp.name)}</td>`;
+    dates.forEach(d => {
+       const subtotals = camp.byDate[d];
+       let val = 0;
+       if (subtotals) {
+         if (pivotMetric === 'conn') val = subtotals.conn;
+         else if (pivotMetric === 'pausas') val = subtotals.pausas;
+         else val = Math.max(0, subtotals.conn - subtotals.pausas);
+       }
+       const text = val > 0 ? secsToHHMM(val) : '-';
+       pivotHtml += `<td style="font-weight:700; background:var(--bg-card2)">${text}</td>`;
+    });
+    pivotHtml += `</tr>`;
+
+    camp.rows.forEach(a => {
+      pivotHtml += `<tr><td style="padding-left: 2rem;">${escHTML(a.agente)}</td>`;
+      dates.forEach(d => {
+        const cd = a.byDate[d];
+        if (cd) {
+          let val = 0;
+          if (pivotMetric === 'conn') val = cd.conn;
+          else if (pivotMetric === 'pausas') val = cd.pausas;
+          else val = Math.max(0, cd.conn - cd.pausas);
+
+          const text = val > 0 ? secsToHHMM(val) : '-';
+          pivotHtml += `<td>${text}</td>`;
+        } else {
+          pivotHtml += `<td style="color:var(--text-muted)">-</td>`;
+        }
+      });
+      pivotHtml += `</tr>`;
+    });
+  });
+  pivotHtml += '</tbody></table>';
+  pivotDiv.innerHTML = pivotHtml;
+}
+
 /* =====================================================
    GRÁFICOS
 ===================================================== */
@@ -1777,9 +2146,39 @@ function toggleSidebar() { document.getElementById('sidebar').classList.toggle('
 async function init() {
   try {
     const data = await loadAllData();
-    STATE.rawData = data; STATE.filtered = data;
+    STATE.rawData = data; 
+    
+    const meses = [...new Set(data.map(r => r.mes).filter(Boolean))];
+    if (meses.length > 0) {
+      const currMonthLabel = getMesLabel(new Date());
+      if (meses.includes(currMonthLabel)) {
+        STATE.filters.mes = [currMonthLabel];
+      } else {
+        const latestDate = new Date(Math.max(...data.map(r => r.fecha ? r.fecha.getTime() : 0)));
+        if (latestDate > 0) {
+          STATE.filters.mes = [getMesLabel(latestDate)];
+        }
+      }
+    }
+    
     populateFilters();
-    updateDashboard();
+    
+    if (STATE.filters.mes.length > 0) {
+      const fMes = document.getElementById('f-mes');
+      if (fMes) {
+        Array.from(fMes.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+          if (cb.value === 'ALL') {
+            cb.checked = false;
+          } else {
+            cb.checked = STATE.filters.mes.includes(cb.value);
+          }
+        });
+        const textEl = document.getElementById('f-mes-text');
+        if (textEl) textEl.textContent = STATE.filters.mes[0];
+      }
+    }
+
+    applyFilters();
     await new Promise(r => setTimeout(r, 600));
     document.getElementById('loading-overlay').style.opacity = '0';
     document.getElementById('loading-overlay').style.transition = 'opacity .5s';
