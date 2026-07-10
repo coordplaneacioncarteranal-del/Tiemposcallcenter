@@ -485,6 +485,17 @@
         <div class="checklist-items" id="f-semana"></div>
       </div>
     </div>
+    <label class="filter-label">📅 Día de la Semana</label>
+    <div class="dropdown-container">
+      <button class="dropdown-header" onclick="toggleDropdown('f-diasemana-dropdown')">
+        <span class="dropdown-header-text" id="f-diasemana-text">Todos los días</span>
+        <span style="font-size: 0.6rem;">▼</span>
+      </button>
+      <div class="filter-checklist" id="f-diasemana-dropdown">
+        <input type="text" class="filter-search" placeholder="Buscar..." onkeyup="filterChecklist('f-diasemana', this.value)" />
+        <div class="checklist-items" id="f-diasemana"></div>
+      </div>
+    </div>
     <label class="filter-label">🗓️ Rango de Fechas</label>
     <div class="range-row" style="margin-bottom:.75rem">
       <input type="date" id="f-fecha-min" class="filter-input" style="margin:0" />
@@ -833,7 +844,7 @@ const STATE = {
   pausasData: [],
   filteredConnData: [],
   filteredPausasData: [],
-  filters: { mes: [], campana: [], agente: [], horaMin: 0, horaMax: 23, resultado: [], fechaMin: null, fechaMax: null },
+  filters: { mes: [], semana: [], diaSemana: [], campana: [], agente: [], horaMin: 0, horaMax: 23, resultado: [], fechaMin: null, fechaMax: null },
   tableSort: { col: 'total', dir: 'desc' },
   tablePage: 1,
   tablePageSize: 15,
@@ -985,13 +996,25 @@ function parseDate(val) {
   const s = String(val).trim();
   if (!s) return null;
   if (_dateCache.has(s)) return _dateCache.get(s);
-  let d = new Date(s);
-  if (!isNaN(d)) { _dateCache.set(s, d); return d; }
-  const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-  if (m1) {
-    d = new Date(`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`);
+  
+  // Try DD/MM/YYYY
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m) {
+    const d = new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10));
     if (!isNaN(d)) { _dateCache.set(s, d); return d; }
   }
+  
+  // Try YYYY-MM-DD
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (m) {
+    const d = new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+    if (!isNaN(d)) { _dateCache.set(s, d); return d; }
+  }
+
+  // Fallback
+  const d = new Date(s);
+  if (!isNaN(d)) { _dateCache.set(s, d); return d; }
+  
   _dateCache.set(s, null);
   return null;
 }
@@ -1412,7 +1435,7 @@ function triggerFilterChange(id) {
   const checked = Array.from(el.querySelectorAll('input[type="checkbox"]:not([value="ALL"]):checked')).map(cb => cb.value);
   const allItemCbs = Array.from(el.querySelectorAll('input[type="checkbox"]:not([value="ALL"])'));
   
-  const keyMap = { 'f-mes': 'mes', 'f-semana': 'semana', 'f-campana': 'campana', 'f-agente': 'agente', 'f-resultado': 'resultado', 'f-pausas': 'pausas' };
+  const keyMap = { 'f-mes': 'mes', 'f-semana': 'semana', 'f-diasemana': 'diaSemana', 'f-campana': 'campana', 'f-agente': 'agente', 'f-resultado': 'resultado', 'f-pausas': 'pausas' };
   const key = keyMap[id];
   
   if (checked.length === allItemCbs.length || checked.length === 0) {
@@ -1442,20 +1465,23 @@ function populateFilters() {
   const allAgentes = new Set();
   const allMeses = new Set();
   const allSemanas = new Set();
+  const allDias = new Set();
   
-  STATE.rawData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); if(r.semana) allSemanas.add(r.semana); });
-  STATE.connData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); if(r.semana) allSemanas.add(r.semana); });
-  STATE.pausasData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); if(r.semana) allSemanas.add(r.semana); });
+  STATE.rawData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); if(r.semana) allSemanas.add(r.semana); if(r.diaSemana >= 0) allDias.add(r.diaSemana); });
+  STATE.connData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); if(r.semana) allSemanas.add(r.semana); if(r.diaSemana >= 0) allDias.add(r.diaSemana); });
+  STATE.pausasData.forEach(r => { if(r.campana) allCampanas.add(r.campana); if(r.agente) allAgentes.add(r.agente); if(r.mes) allMeses.add(r.mes); if(r.semana) allSemanas.add(r.semana); if(r.diaSemana >= 0) allDias.add(r.diaSemana); });
 
   const campanas = [...allCampanas].sort();
   const agentes  = [...allAgentes].sort();
   const meses    = [...allMeses].sort();
   const semanas  = [...allSemanas].sort();
+  const diasNombres = [1,2,3,4,5,6,0].filter(d => allDias.has(d)).map(d => DIAS[d]);
   const results  = [...new Set(STATE.rawData.map(r => r.resultado).filter(Boolean))].sort();
   const pausas   = [...new Set(STATE.pausasData.map(r => r.pausa).filter(Boolean))].sort();
 
   buildChecklist('f-mes',      meses);
   buildChecklist('f-semana',   semanas);
+  buildChecklist('f-diasemana',diasNombres);
   buildChecklist('f-campana',  campanas);
   buildChecklist('f-agente',   agentes);
   buildChecklist('f-resultado',results);
@@ -1491,6 +1517,7 @@ function applyFilters() {
   STATE.filtered = STATE.rawData.filter(r => {
     if (f.mes && f.mes.length > 0 && !f.mes.includes(r.mes)) return false;
     if (f.semana && f.semana.length > 0 && !f.semana.includes(r.semana)) return false;
+    if (f.diaSemana && f.diaSemana.length > 0 && r.diaSemana >= 0 && !f.diaSemana.includes(DIAS[r.diaSemana])) return false;
     if (f.campana && f.campana.length > 0 && !f.campana.includes(r.campana)) return false;
     if (f.agente && f.agente.length > 0 && !f.agente.includes(r.agente)) return false;
     if (f.resultado && f.resultado.length > 0 && !f.resultado.includes(r.resultado)) return false;
@@ -1503,6 +1530,7 @@ function applyFilters() {
   STATE.filteredConnData = STATE.connData.filter(r => {
     if (f.mes && f.mes.length > 0 && !f.mes.includes(r.mes)) return false;
     if (f.semana && f.semana.length > 0 && !f.semana.includes(r.semana)) return false;
+    if (f.diaSemana && f.diaSemana.length > 0 && r.diaSemana >= 0 && !f.diaSemana.includes(DIAS[r.diaSemana])) return false;
     if (f.campana && f.campana.length > 0 && !f.campana.includes(r.campana)) return false;
     if (f.agente && f.agente.length > 0 && !f.agente.includes(r.agente)) return false;
     if (f.fechaMin && (!r.fecha || r.fecha < f.fechaMin)) return false;
@@ -1513,6 +1541,7 @@ function applyFilters() {
   STATE.filteredPausasData = STATE.pausasData.filter(r => {
     if (f.mes && f.mes.length > 0 && !f.mes.includes(r.mes)) return false;
     if (f.semana && f.semana.length > 0 && !f.semana.includes(r.semana)) return false;
+    if (f.diaSemana && f.diaSemana.length > 0 && r.diaSemana >= 0 && !f.diaSemana.includes(DIAS[r.diaSemana])) return false;
     if (f.campana && f.campana.length > 0 && !f.campana.includes(r.campana)) return false;
     if (f.agente && f.agente.length > 0 && !f.agente.includes(r.agente)) return false;
     if (f.pausas && f.pausas.length > 0 && !f.pausas.includes(r.pausa)) return false;
@@ -1526,8 +1555,8 @@ function applyFilters() {
   updateDashboard();
 }
 function resetFilters() {
-  STATE.filters = { mes:[], semana:[], campana:[], agente:[], horaMin:0, horaMax:23, resultado:[], pausas:[], fechaMin:null, fechaMax:null };
-  ['f-mes', 'f-semana', 'f-campana', 'f-agente', 'f-resultado', 'f-pausas'].forEach(id => {
+  STATE.filters = { mes:[], semana:[], diaSemana:[], campana:[], agente:[], horaMin:0, horaMax:23, resultado:[], pausas:[], fechaMin:null, fechaMax:null };
+  ['f-mes', 'f-semana', 'f-diasemana', 'f-campana', 'f-agente', 'f-resultado', 'f-pausas'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       Array.from(el.querySelectorAll('input[type="checkbox"]')).forEach(cb => cb.checked = true);
@@ -1543,7 +1572,7 @@ function resetFilters() {
   document.getElementById('f-fecha-min').value = '';
   document.getElementById('f-fecha-max').value = '';
   document.querySelectorAll('.filter-search').forEach(s => s.value = '');
-  ['f-mes', 'f-semana', 'f-campana', 'f-agente', 'f-resultado'].forEach(id => filterChecklist(id, ''));
+  ['f-mes', 'f-semana', 'f-diasemana', 'f-campana', 'f-agente', 'f-resultado'].forEach(id => filterChecklist(id, ''));
   applyFilters();
 }
 document.getElementById('f-hora-min').addEventListener('change', e => { STATE.filters.horaMin = parseInt(e.target.value) || 0; applyFilters(); });
