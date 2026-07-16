@@ -59,48 +59,52 @@
       min-height: 100vh;
       overflow-x: hidden;
     }
-    /* ── SIDEBAR ── */
+        /* ── SIDEBAR ── */
     #sidebar {
       width: var(--sidebar-w);
       min-height: 100vh;
       background: #111827;
-      border-right: 1px solid var(--border);
+      border-left: 1px solid var(--border);
+      border-bottom: none;
       display: flex;
       flex-direction: column;
       position: fixed;
-      top: 0; left: 0;
+      top: 0; right: 0;
       z-index: 50;
       overflow-y: auto;
       transition: transform .3s ease;
+      padding: 0;
+      align-items: stretch;
+      gap: 0;
     }
-    #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
+    #sidebar.collapsed { transform: translateX(100%); }
     .sidebar-logo {
+      display: flex;
       padding: 1.2rem 1.5rem;
       border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: .75rem;
+      align-items: center; gap: .75rem;
     }
     .sidebar-logo .logo-icon {
+      display: flex;
       width: 36px; height: 36px; border-radius: 8px;
       background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      display: flex; align-items: center; justify-content: center;
+      align-items: center; justify-content: center;
       font-size: 1rem; flex-shrink: 0;
     }
-    .sidebar-logo span { font-size: .85rem; font-weight: 700; color: var(--text-main); line-height: 1.2; }
-    .sidebar-logo small { font-size: .68rem; color: var(--text-muted); }
-    .filter-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
-    .filter-section h3 {
-      font-size: .7rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .08em; color: var(--text-muted); margin-bottom: .75rem;
-    }
-    .filter-label { font-size: .78rem; color: var(--text-muted); margin-bottom: .3rem; display: block; }
+    .sidebar-logo span { display: block; font-size: .85rem; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+    .sidebar-logo small { display: block; font-size: .85rem; color: var(--text-muted); }
+    .filter-section { display: block; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .filter-section h3 { display: block; font-size: .9rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: .75rem; }
+    .filter-label { font-size: .95rem; color: var(--text-muted); margin-bottom: .3rem; display: block; white-space: normal; }
     select.filter-select, .filter-input {
       width: 100%;
+      min-width: auto;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text-main);
       padding: .45rem .7rem;
-      font-size: .8rem;
+      font-size: 1rem;
       margin-bottom: .75rem;
       outline: none;
       appearance: none;
@@ -110,15 +114,17 @@
     select.filter-select:focus, .filter-input:focus { border-color: var(--accent-blue); }
     .filter-select option { background: #1e293b; }
     .btn-reset {
-      width: 100%; padding: .5rem;
+      width: 100%; padding: .5rem 1rem;
       background: #334155; border: none; border-radius: 6px;
-      color: var(--text-main); font-size: .78rem; font-weight: 600;
+      color: var(--text-main); font-size: 1rem; font-weight: 600;
       cursor: pointer; transition: background .2s;
+      margin-bottom: 0;
     }
     .btn-reset:hover { background: #475569; }
     .dropdown-container {
       position: relative;
       margin-bottom: .75rem;
+      width: 100%;
     }
     .dropdown-header {
       width: 100%;
@@ -127,7 +133,7 @@
       border-radius: 6px;
       color: var(--text-main);
       padding: .45rem .7rem;
-      font-size: .8rem;
+      font-size: 1rem;
       text-align: left;
       cursor: pointer;
       display: flex;
@@ -169,7 +175,7 @@
       border-bottom: 1px solid var(--border);
       color: var(--text-main);
       padding: .45rem .5rem;
-      font-size: .75rem;
+      font-size: .95rem;
       outline: none;
     }
     .checklist-items {
@@ -182,7 +188,7 @@
       align-items: center;
       gap: .5rem;
       padding: .25rem .45rem;
-      font-size: .75rem;
+      font-size: .95rem;
       color: var(--text-main);
       cursor: pointer;
       border-radius: 4px;
@@ -194,18 +200,22 @@
       cursor: pointer;
       margin: 0;
     }
-    /* ── MAIN CONTENT ── */
+    #filters-analytics-only, #filters-conn-only {
+      display: block;
+    }
+        /* ── MAIN CONTENT ── */
     #main {
-      margin-left: var(--sidebar-w);
+      margin-right: var(--sidebar-w);
+      margin-left: 0;
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
       min-width: 0;
       overflow-x: hidden;
-      transition: margin-left .3s ease;
+      transition: margin-right .3s ease;
     }
-    #main.expanded { margin-left: 0; }
+    #main.expanded { margin-right: 0; }
     /* ── TOP BAR & TABS ── */
     #topbar {
       height: 60px;
@@ -221,7 +231,7 @@
     }
     .tab-btn {
       background: transparent; border: none; color: var(--text-muted);
-      font-size: .8rem; font-weight: 600; padding: .5rem 1rem;
+      font-size: 1rem; font-weight: 600; padding: .5rem 1rem;
       border-radius: 6px; cursor: pointer; transition: all .2s;
     }
     .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
@@ -229,18 +239,18 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     #toggle-sidebar {
-      background: none; border: none; color: var(--text-muted);
+      background: none !important; border: none !important; color: var(--text-muted);
       font-size: 1.3rem; cursor: pointer; padding: .25rem;
       border-radius: 4px; transition: color .2s;
     }
     #toggle-sidebar:hover { color: var(--text-main); }
     #topbar h1 { font-size: 1rem; font-weight: 700; color: var(--text-main); flex: 1; }
     #topbar .badge {
-      font-size: .7rem; padding: .2rem .65rem; border-radius: 999px;
+      font-size: .9rem; padding: .2rem .65rem; border-radius: 999px;
       background: rgba(59,130,246,.15); color: var(--accent-blue);
       border: 1px solid rgba(59,130,246,.3); font-weight: 600;
     }
-    #last-update { font-size: .72rem; color: var(--text-muted); }
+    #last-update { font-size: .9rem; color: var(--text-muted); }
     /* ── LOADING OVERLAY ── */
     #loading-overlay {
       position: fixed; inset: 0; z-index: 100;
@@ -258,7 +268,7 @@
     .loader-text { font-size: .9rem; color: var(--text-muted); text-align: center; }
     .loader-sources { display: flex; flex-direction: column; gap: .4rem; margin-top: .5rem; }
     .loader-src {
-      font-size: .75rem; color: var(--text-muted);
+      font-size: .95rem; color: var(--text-muted);
       display: flex; align-items: center; gap: .5rem;
     }
     .loader-src .dot {
@@ -272,7 +282,7 @@
       display: none;
       background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
       border-radius: 8px; padding: .75rem 1rem;
-      font-size: .8rem; color: #fca5a5; margin: 1rem 1.5rem 0;
+      font-size: 1rem; color: #fca5a5; margin: 1rem 1.5rem 0;
     }
     /* ── CONTENT AREA ── */
     #content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
@@ -302,11 +312,11 @@
     .kpi-card.amber::before { background: var(--accent-amber); }
     .kpi-card.red::before { background: var(--accent-red); }
     .kpi-card.purple::before { background: #a855f7; }
-    .kpi-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: .5rem; }
+    .kpi-label { font-size: .9rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: .5rem; }
     .kpi-value { font-size: 1.8rem; font-weight: 800; line-height: 1; color: var(--text-main); }
     .kpi-value.alert { color: var(--accent-red); }
     .kpi-value.warn { color: var(--accent-amber); }
-    .kpi-sub { font-size: .72rem; color: var(--text-muted); margin-top: .4rem; }
+    .kpi-sub { font-size: .9rem; color: var(--text-muted); margin-top: .4rem; }
     .kpi-icon {
       position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
       font-size: 2rem; opacity: .08;
@@ -320,7 +330,7 @@
       min-width: 0;
     }
     .chart-title {
-      font-size: .85rem; font-weight: 700; color: var(--text-main);
+      font-size: 1.05rem; font-weight: 700; color: var(--text-main);
       margin-bottom: .25rem;
     }
     .chart-subtitle { font-size: .73rem; color: var(--text-muted); margin-bottom: 1rem; }
@@ -350,11 +360,11 @@
       tbody tr:hover .sticky-col { background: #2a374a !important; }
       [data-theme="light"] tbody tr:hover .sticky-col { background: #f1f5f9 !important; }
       
-      table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 1rem; }
     thead tr { border-bottom: 2px solid var(--border); }
     th {
       padding: .75rem 1rem; text-align: left;
-      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      font-size: .9rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .06em; color: var(--text-muted);
       cursor: pointer; user-select: none; white-space: nowrap;
     }
@@ -369,7 +379,7 @@
     td.muted { color: var(--text-muted); }
     .badge-result {
       display: inline-block; padding: .2rem .5rem;
-      border-radius: 4px; font-size: .68rem; font-weight: 700;
+      border-radius: 4px; font-size: 1.05rem; font-weight: 700;
     }
     .badge-green { background: rgba(34,197,94,.15); color: #4ade80; }
     .badge-red { background: rgba(239,68,68,.15); color: #f87171; }
@@ -386,13 +396,13 @@
     /* Pagination */
     .pagination {
       display: flex; align-items: center; justify-content: space-between;
-      padding: .75rem 0 0; font-size: .78rem; color: var(--text-muted);
+      padding: .75rem 0 0; font-size: .95rem; color: var(--text-muted);
     }
     .pag-btns { display: flex; gap: .4rem; }
     .pag-btn {
       padding: .3rem .65rem; border-radius: 6px;
       background: var(--bg-card2); border: 1px solid var(--border);
-      color: var(--text-main); font-size: .75rem; cursor: pointer;
+      color: var(--text-main); font-size: .95rem; cursor: pointer;
       transition: background .15s;
     }
     .pag-btn:hover { background: #334155; }
@@ -406,7 +416,7 @@
     /* No data */
     .no-data {
       text-align: center; padding: 3rem 1rem;
-      color: var(--text-muted); font-size: .85rem;
+      color: var(--text-muted); font-size: 1.05rem;
     }
     /* Range labels */
     .range-row { display: flex; gap: .5rem; }
@@ -414,17 +424,25 @@
       width: 50%; background: var(--bg-card);
       border: 1px solid var(--border); border-radius: 6px;
       color: var(--text-main); padding: .4rem .55rem;
-      font-size: .78rem; outline: none;
+      font-size: .95rem; outline: none;
     }
     .range-row input:focus { border-color: var(--accent-blue); }
-    /* Responsive */
+
+    #filters-analytics-only, #filters-conn-only {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+    }
+        /* Responsive */
     @media (max-width: 900px) {
       .charts-row { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
-      #sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+      #sidebar { transform: translateX(100%); }
       #sidebar.mobile-open { transform: translateX(0); }
-      #main { margin-left: 0 !important; }
+      #main { margin-right: 0 !important; }
     }
     /* Heatmap custom */
     #heatmap-container { width: 100%; overflow-x: auto; }
@@ -450,9 +468,25 @@
     </div>
   </div>
 </div>
+
 <!-- ═══════════════════════════════════════════
-     SIDEBAR
+     MAIN
 ═══════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <h1>📊 Dashboard Outbound — Dyalogo</h1>
+    <div id="tabs-container">
+      <button class="tab-btn active" onclick="switchTab('analytics')" id="btn-tab-analytics">Analítica de Llamadas</button>
+      <button class="tab-btn" onclick="switchTab('connection')" id="btn-tab-connection">Conexión y Pausas</button>
+    </div>
+    <span class="badge">LIVE DATA</span>
+    <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+    <button id="toggle-sidebar" onclick="toggleSidebar()" title="Mostrar/Ocultar Filtros" style="margin-left: 0.5rem; background: transparent; border: none; font-size: 1.3rem; cursor: pointer;">☰</button>
+    <span id="last-update" style="margin-left:auto">—</span>
+  </div>
+
 <aside id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-icon">📞</div>
@@ -568,22 +602,6 @@
     </div>
   </div>
 </aside>
-<!-- ═══════════════════════════════════════════
-     MAIN
-═══════════════════════════════════════════ -->
-<div id="main">
-  <!-- Top Bar -->
-  <div id="topbar">
-    <button id="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
-    <h1>📊 Dashboard Outbound — Dyalogo</h1>
-    <div id="tabs-container">
-      <button class="tab-btn active" onclick="switchTab('analytics')" id="btn-tab-analytics">Analítica de Llamadas</button>
-      <button class="tab-btn" onclick="switchTab('connection')" id="btn-tab-connection">Conexión y Pausas</button>
-    </div>
-    <span class="badge">LIVE DATA</span>
-    <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
-    <span id="last-update" style="margin-left:auto">—</span>
-  </div>
   <!-- Error Banner -->
   <div id="error-banner"></div>
 
@@ -724,6 +742,9 @@
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','tmo','mes')">TIEMPO HABLADO <span class="sort-icon-mes" id="sort-mes-tmo">↕</span></th>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','pctBuzon','mes')">% Buzón &lt;10s <span class="sort-icon-mes" id="sort-mes-pctBuzon">↕</span></th>
               <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','promTipif','mes')">Tiempo Tipif. <span class="sort-icon-mes" id="sort-mes-promTipif">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','avgActiveAgents','mes')">Prom. Agentes/Día <span class="sort-icon-mes" id="sort-mes-avgActiveAgents">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','avgCallsPerAgentDay','mes')">Prom. Llms/Ag./Día <span class="sort-icon-mes" id="sort-mes-avgCallsPerAgentDay">↕</span></th>
+              <th onclick="sortGroupTable('mes','mes','mes-tbody','mes-pag-info','mes-pag-btns','avgAnsweredPerAgentDay','mes')">Prom. Cont./Ag./Día <span class="sort-icon-mes" id="sort-mes-avgAnsweredPerAgentDay">↕</span></th>
             </tr>
           </thead>
           <tbody id="mes-tbody"></tbody>
@@ -751,6 +772,9 @@
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','tmo','campana')">TIEMPO HABLADO <span class="sort-icon-campana" id="sort-campana-tmo">↕</span></th>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','pctBuzon','campana')">% Buzón &lt;10s <span class="sort-icon-campana" id="sort-campana-pctBuzon">↕</span></th>
               <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','promTipif','campana')">Tiempo Tipif. <span class="sort-icon-campana" id="sort-campana-promTipif">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','avgActiveAgents','campana')">Prom. Agentes/Día <span class="sort-icon-campana" id="sort-campana-avgActiveAgents">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','avgCallsPerAgentDay','campana')">Prom. Llms/Ag./Día <span class="sort-icon-campana" id="sort-campana-avgCallsPerAgentDay">↕</span></th>
+              <th onclick="sortGroupTable('campana','campana','campana-tbody','campana-pag-info','campana-pag-btns','avgAnsweredPerAgentDay','campana')">Prom. Cont./Ag./Día <span class="sort-icon-campana" id="sort-campana-avgAnsweredPerAgentDay">↕</span></th>
             </tr>
           </thead>
           <tbody id="campana-tbody"></tbody>
@@ -850,10 +874,10 @@ const STATE = {
   tablePageSize: 15,
   charts: {},
   tables: {
-    mes:      { sort: { col: 'total', dir: 'desc' }, page: 1, pageSize: 15 },
+    mes:      { sort: { col: 'label', dir: 'asc' }, page: 1, pageSize: 15 },
     campana:  { sort: { col: 'total', dir: 'desc' }, page: 1, pageSize: 15 }
   },
-  theme: 'dark'
+  theme: 'light'
 };
 /* =====================================================
    TEMA (CLARO / OSCURO)
@@ -1143,12 +1167,31 @@ function mapRow(row, colIdx, source) {
   const tTipif   = parseTime(get('tiempoTipif'));
   const ob       = String(get('ob')).trim().toUpperCase();
   const telefono = String(get('telefono')).trim() || 'Desconocido';
+  
+  const mesLabel = getMesLabelCached(dateObj);
+  let campana = String(get('campana')).trim() || 'Sin campaña';
+  let agente = String(get('agente')).trim() || 'Sin agente';
+  
+  const agenteUp = agente.toUpperCase();
+  if (agenteUp.includes('ANYI COSSIO')) {
+    if (['Marzo', 'Abril', 'Mayo', 'Junio'].includes(mesLabel)) {
+      campana = 'BLINDAJE';
+    } else if (mesLabel === 'Julio') {
+      campana = 'RECORDACIÓN';
+    }
+  }
+  if (agenteUp.includes('JUAN CAMILO GALEANO')) {
+    if (mesLabel === 'Julio') {
+      campana = 'BLINDAJE';
+    }
+  }
+
   return {
     _source: source,
     fecha: dateObj, hora: hora, diaSemana: dateObj ? dateObj.getDay() : -1,
-    mes: getMesLabelCached(dateObj), resultado: resultado, resultadoRaw: resRaw,
-    campana: String(get('campana')).trim() || 'Sin campaña',
-    agente: String(get('agente')).trim() || 'Sin agente',
+    mes: mesLabel, resultado: resultado, resultadoRaw: resRaw,
+    campana: campana,
+    agente: agente,
     tiempoHablado: tHablado, 
     tiempoTipif: tTipif, 
     ob: ob,
@@ -1750,11 +1793,18 @@ function calcGroupTable(data, field) {
         tHabladoSum: 0, tHabladoCount: 0,
         tTipifSum: 0, tTipifCount: 0,
         buzon: 0,
-        phones: new Set()
+        phones: new Set(),
+        dates: new Set(),
+        agentDates: new Set()
       };
     }
     groups[g].total++;
     if (r.telefono && r.telefono !== 'Desconocido') groups[g].phones.add(r.telefono);
+    if (r.fecha) {
+      const dStr = r.fecha.getTime();
+      groups[g].dates.add(dStr);
+      groups[g].agentDates.add(r.agente + '|' + dStr);
+    }
     if (r.esContestada) {
       groups[g].contestadas++;
       // TMO: Solo llamadas >= 60s
@@ -1769,22 +1819,36 @@ function calcGroupTable(data, field) {
     }
     if (r.esBuzon) groups[g].buzon++;
   });
-  return Object.values(groups).map(g => ({
-    ...g,
-    vueltas: g.phones.size > 0 ? (g.total / g.phones.size) : 0,
-    contactabilidadReal: g.total > 0 ? (g.contestadas / g.total * 100) : 0,
-    contactabilidad: g.total > 0 ? ((g.contestadas - g.buzon) / g.total * 100) : 0,
-    tmo: g.tHabladoCount > 0 ? Math.round(g.tHabladoSum / g.tHabladoCount) : 0,
-    promTipif: g.tTipifCount > 0 ? Math.round(g.tTipifSum / g.tTipifCount) : 0,
-    pctBuzon: g.contestadas > 0 ? (g.buzon / g.contestadas * 100) : 0
-  }));
+  return Object.values(groups).map(g => {
+    const uDays = Math.max(1, g.dates.size);
+    const aDays = Math.max(1, g.agentDates.size);
+    return {
+      ...g,
+      vueltas: g.phones.size > 0 ? (g.total / g.phones.size) : 0,
+      contactabilidadReal: g.total > 0 ? (g.contestadas / g.total * 100) : 0,
+      contactabilidad: g.total > 0 ? ((g.contestadas - g.buzon) / g.total * 100) : 0,
+      tmo: g.tHabladoCount > 0 ? Math.round(g.tHabladoSum / g.tHabladoCount) : 0,
+      promTipif: g.tTipifCount > 0 ? Math.round(g.tTipifSum / g.tTipifCount) : 0,
+      pctBuzon: g.contestadas > 0 ? (g.buzon / g.contestadas * 100) : 0,
+      avgActiveAgents: aDays / uDays,
+      avgCallsPerAgentDay: g.total / aDays,
+      avgAnsweredPerAgentDay: g.contestadas / aDays
+    };
+  });
 }
 function renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId) {
   let rows = calcGroupTable(STATE.filtered, field);
   const st = STATE.tables[stateKey];
   rows.sort((a,b) => {
-    const va = typeof a[st.sort.col] === 'string' ? a[st.sort.col].toLowerCase() : a[st.sort.col];
-    const vb = typeof b[st.sort.col] === 'string' ? b[st.sort.col].toLowerCase() : b[st.sort.col];
+    let va = typeof a[st.sort.col] === 'string' ? a[st.sort.col].toLowerCase() : a[st.sort.col];
+    let vb = typeof b[st.sort.col] === 'string' ? b[st.sort.col].toLowerCase() : b[st.sort.col];
+    
+    if (field === 'mes' && st.sort.col === 'label') {
+      const order = { 'enero':1, 'febrero':2, 'marzo':3, 'abril':4, 'mayo':5, 'junio':6, 'julio':7, 'agosto':8, 'septiembre':9, 'octubre':10, 'noviembre':11, 'diciembre':12 };
+      va = order[va] || 99;
+      vb = order[vb] || 99;
+    }
+    
     if (va < vb) return st.sort.dir === 'asc' ? -1 : 1;
     if (va > vb) return st.sort.dir === 'asc' ? 1 : -1;
     return 0;
@@ -1795,7 +1859,7 @@ function renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="no-data">Sin datos</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="no-data">Sin datos</td></tr>';
   } else {
     tbody.innerHTML = slice.map(a => `
       <tr>
@@ -1808,6 +1872,9 @@ function renderGroupTable(field, stateKey, tbodyId, pagInfoId, pagBtnsId) {
         <td>${secsToHHMM(a.tmo)}</td>
         <td><span class="badge-result ${a.pctBuzon > 20 ? 'badge-red' : 'badge-green'}">${a.pctBuzon.toFixed(1)}%</span></td>
         <td><span style="font-weight:600">${secsToHHMM(a.promTipif)}</span></td>
+        <td><span style="font-weight:600; color:#cbd5e1">${a.avgActiveAgents.toFixed(1)}</span></td>
+        <td><span style="font-weight:600; color:#93c5fd">${a.avgCallsPerAgentDay.toFixed(1)}</span></td>
+        <td><span style="font-weight:600; color:#4ade80">${a.avgAnsweredPerAgentDay.toFixed(1)}</span></td>
       </tr>`).join('');
   }
   const pagInfoEl = document.getElementById(pagInfoId);
@@ -2620,6 +2687,9 @@ function toggleSidebar() { document.getElementById('sidebar').classList.toggle('
    INIT
 ===================================================== */
 async function init() {
+    document.documentElement.setAttribute('data-theme', STATE.theme);
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = STATE.theme === 'dark' ? '☀️' : '🌙';
   try {
     const data = await loadAllData();
     STATE.rawData = data; 
